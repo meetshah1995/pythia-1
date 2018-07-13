@@ -14,7 +14,6 @@ def build_question_encoding_module(method, par, num_vocab):
     else:
         raise NotImplementedError("unknown question encoding model %s" % method)
 
-
 class QuestionEmbeding(nn.Module):
     def __init__(self, **kwargs):
         super(QuestionEmbeding, self).__init__()
@@ -36,23 +35,22 @@ class QuestionEmbeding(nn.Module):
         res = out[:, -1]
         return res
 
-
 class AttQuestionEmbedding(nn.Module):
     def __init__(self, num_vocab, **kwargs):
         super(AttQuestionEmbedding, self).__init__()
         self.embedding = nn.Embedding(num_vocab, kwargs['embedding_dim'])
-        self.LSTM = nn.LSTM(input_size=kwargs['embedding_dim'] , 
-                            hidden_size=kwargs['LSTM_hidden_size'], 
-                            num_layers=kwargs['LSTM_layer'], 
+        self.LSTM = nn.LSTM(input_size=kwargs['embedding_dim'] ,
+                            hidden_size=kwargs['LSTM_hidden_size'],
+                            num_layers=kwargs['LSTM_layer'],
                             batch_first=True)
         self.Dropout = nn.Dropout(p=kwargs['dropout'])
-        self.conv1 = nn.Conv1d(in_channels=kwargs['LSTM_hidden_size'], 
-                                                out_channels=kwargs['conv1_out'], 
-                                                kernel_size=kwargs['kernel_size'], 
+        self.conv1 = nn.Conv1d(in_channels=kwargs['LSTM_hidden_size'],
+                                                out_channels=kwargs['conv1_out'],
+                                                kernel_size=kwargs['kernel_size'],
                                                 padding=kwargs['padding'])
-        self.conv2 = nn.Conv1d(in_channels=kwargs['conv1_out'], 
-                            out_channels=kwargs['conv2_out'], 
-                            kernel_size=kwargs['kernel_size'], 
+        self.conv2 = nn.Conv1d(in_channels=kwargs['conv1_out'],
+                            out_channels=kwargs['conv2_out'],
+                            kernel_size=kwargs['kernel_size'],
                             padding=kwargs['padding'])
         self.text_out_dim = kwargs['LSTM_hidden_size'] * kwargs['conv2_out']
 
@@ -83,8 +81,3 @@ class AttQuestionEmbedding(nn.Module):
         qtt_feature_concat = qtt_feature.view(batch_size,-1)  # N * (conv2_out * LSTM_hidden_size)
 
         return qtt_feature_concat
-
-
-
-
-

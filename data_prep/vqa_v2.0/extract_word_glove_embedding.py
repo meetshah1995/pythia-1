@@ -42,9 +42,9 @@ if __name__ == '__main__':
     out_dir = args.out_dir
 
     os.makedirs(out_dir, exist_ok=True)
-    emb_file_name = "vqa2.0_"+os.path.basename(glove_file)+".npy"
+    emb_file_name = os.path.basename(glove_file)+".npy"
 
     weights = subset_weights(glove_file, vocabulary_file)
-
+    print(weights.shape)
     emb_file = os.path.join(out_dir,emb_file_name)
     np.save(emb_file, weights)

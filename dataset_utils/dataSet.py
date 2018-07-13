@@ -3,7 +3,7 @@ from torch.utils.data import Dataset
 from dataset_utils import text_processing
 import numpy as np
 from global_variables.global_variables import imdb_version
-
+import json
 
 
 class faster_RCNN_feat_reader:
@@ -42,7 +42,7 @@ class padded_faster_RCNN_feat_reader:
         image_loc, image_dim = image_feat.shape
         tmp_image_feat = np.zeros((self.max_loc, image_dim), dtype=np.float32)
         tmp_image_feat[0:image_loc, ] = image_feat
-        image_feat= tmp_image_feat
+        image_feat = tmp_image_feat
         return (image_feat, image_loc)
 
 class padded_faster_RCNN_with_bbox_feat_reader:
@@ -63,6 +63,25 @@ class padded_faster_RCNN_with_bbox_feat_reader:
 
         return (tmp_image_feat_2, image_loc, tmp_image_box)
 
+class padded_faster_RCNN_with_bbox_text_feat_reader:
+    def __init__(self, max_loc):
+        self.max_loc = max_loc
+    def read(self, image_feat_path):
+        image_feat_bbox = np.load(image_feat_path)
+
+        image_boxes = image_feat_bbox.item().get('image_bboxes')
+        tmp_image_feat = image_feat_bbox.item().get('image_feat')
+        tmp_image_text_feat = image_feat_bbox.item().get('image_text')
+
+        image_loc, image_dim = tmp_image_feat.shape
+        tmp_image_feat_2 = np.zeros((self.max_loc, image_dim), dtype=np.float32)
+        tmp_image_feat_2[0:image_loc, ] = tmp_image_feat
+
+        tmp_image_box = np.zeros((self.max_loc, 4), dtype=np.int32)
+        tmp_image_box[0:image_loc] = image_boxes
+
+        return (tmp_image_feat_2, image_loc, tmp_image_box, tmp_image_text_feat)
+
 
 def parse_npz_img_feat(feat):
     return feat['x']
@@ -73,7 +92,9 @@ def get_image_feat_reader(ndim, channel_first,image_feat,max_loc=None):
         if max_loc is None:
             return faster_RCNN_feat_reader()
         else:
-            if isinstance(image_feat.item(0), dict):
+            if isinstance(image_feat.item(0), dict) and (len(image_feat.item(0))):
+                return padded_faster_RCNN_with_bbox_text_feat_reader(max_loc)
+            elif isinstance(image_feat.item(0), dict):
                 return padded_faster_RCNN_with_bbox_feat_reader(max_loc)
             else:
                 return padded_faster_RCNN_feat_reader(max_loc)
@@ -127,6 +148,7 @@ class vqa_dataset(Dataset):
 
         self.vocab_dict = text_processing.VocabDict(data_params['vocab_question_file'])
         self.T_encoder = data_params['T_encoder']
+        self.max_loc = 137
 
         ## read the header of imdb file
         header_idx = 0
@@ -197,21 +219,25 @@ class vqa_dataset(Dataset):
 
         image_boxes = None
         image_loc = None
+        image_text_feat = None
 
         if isinstance(image_feats[0], tuple):
             image_loc =image_feats[0][1]
             image_feats_return = [image_feats[0][0]] + image_feats[1:]
             if len(image_feats[0]) == 3:
                 image_boxes = image_feats[0][2]
+            if len(image_feats[0]) == 4:
+                image_text_feat = image_feats[0][3]
         else:
             image_feats_return = image_feats
 
 
-        return image_feats_return, image_boxes, image_loc
+        return image_feats_return, image_boxes, image_loc, image_text_feat
 
 
     def __getitem__(self, idx):
         input_seq = np.zeros((self.T_encoder),np.int32)
+        feat_seq = np.zeros((self.max_loc, self.T_encoder),np.int32)
         idx += self.first_element_idx
         iminfo = self.imdb[idx]
         question_inds = [self.vocab_dict.word2idx(w) for w in iminfo['question_tokens']]
@@ -220,7 +246,15 @@ class vqa_dataset(Dataset):
         input_seq[:read_len] = question_inds[:read_len]
 
         image_file_name = self.imdb[idx]['feature_path']
-        image_feats, image_boxes, image_loc = self._get_image_features_(image_file_name)
+        image_feats, image_boxes, image_loc, image_text_feat = self._get_image_features_(image_file_name)
+
+
+        for i, text in enumerate(image_text_feat):
+            feat_tokens = text_processing.tokenize(text)
+            feat_inds = [self.vocab_dict.word2idx(w) for w in feat_tokens]
+            feat_seq_length = len(feat_inds)
+            read_len = min(seq_length, self.T_encoder)
+            feat_seq[i,:read_len] = question_inds[:read_len]
 
         answer = None
         valid_answers_idx = np.zeros((10),np.int32)
@@ -260,6 +294,7 @@ class vqa_dataset(Dataset):
                 feat_key = "image_feat_batch_%s" % str(im_idx)
                 sample[feat_key] = image_feat
 
+        sample['image_text_feat'] = feat_seq
 
         if image_loc is not None:
             sample['image_dim'] = image_loc

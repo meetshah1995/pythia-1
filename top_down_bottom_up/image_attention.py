@@ -128,5 +128,3 @@ class top_down_attention(nn.Module):
                 masked_attention = self._mask_attentions(attention, image_locs)
 
         return masked_attention
-
-

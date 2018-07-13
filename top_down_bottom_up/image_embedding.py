@@ -7,15 +7,15 @@ import pickle
 
 '''
     parameters:
-        
+
     input:
-        image_feat_variable: [batch_size, num_location, image_feat_dim] or a list of [num_location, image_feat_dim] 
+        image_feat_variable: [batch_size, num_location, image_feat_dim] or a list of [num_location, image_feat_dim]
             when using adaptive number of objects
         question_embedding:[batch_size, txt_embeding_dim]
-        
+
     output:
         image_embedding:[batch_size, image_feat_dim]
-        
+
 
 '''
 
@@ -54,8 +54,3 @@ class image_finetune(nn.Module):
         i2 = self.lc(image)
         i3 = F.relu(i2)
         return i3
-
-
-
-
-

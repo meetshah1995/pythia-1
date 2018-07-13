@@ -4,11 +4,11 @@ from top_down_bottom_up.nonlinear_layer import nonlinear_layer
 import torch.nn.functional as F
 
 
-def build_modal_combine_module(method, par, image_feat_dim, ques_emb_dim):
+def build_modal_combine_module(method, par, image_feat_dim, ques_emb_dim, image_text_feat_emb_dim=None):
     if method == 'MFH':
         return MFH(image_feat_dim, ques_emb_dim, **par)
     elif method == 'non_linear_elmt_multiply':
-        return non_linear_elmt_multiply(image_feat_dim, ques_emb_dim, **par)
+        return non_linear_elmt_multiply(image_feat_dim, ques_emb_dim, image_text_feat_emb_dim, **par)
     elif method == "two_layer_elmt_multiply":
         return two_layer_elmt_multiply(image_feat_dim, ques_emb_dim, **par)
     else:
@@ -99,14 +99,19 @@ class MFH(nn.Module):
 # need to handle two situations, first: image (N, K, i_dim), question (N, q_dim);
 # second: image (N, i_dim), question (N, q_dim);
 class non_linear_elmt_multiply(nn.Module):
-    def __init__(self, image_feat_dim, ques_emb_dim, **kwargs):
+    def __init__(self, image_feat_dim, ques_emb_dim, image_text_feat_emb_dim=None, **kwargs):
         super(non_linear_elmt_multiply, self).__init__()
         self.Fa_image = nonlinear_layer(image_feat_dim, kwargs['hidden_size'])
         self.Fa_txt = nonlinear_layer(ques_emb_dim, kwargs['hidden_size'])
+        self.Fa_image_text_feat = None
         self.dropout = nn.Dropout(kwargs['dropout'])
         self.out_dim = kwargs['hidden_size']
+        if image_text_feat_emb_dim is not None:
+            self.Fa_image_text_feat = nonlinear_layer(image_text_feat_emb_dim, kwargs['hidden_size'])
+            self.out_dim *=2
 
-    def forward(self, image_feat, question_embedding):
+
+    def forward(self, image_feat, question_embedding, image_text_feat=None):
         image_fa = self.Fa_image(image_feat)
         question_fa = self.Fa_txt(question_embedding)
 
@@ -117,9 +122,15 @@ class non_linear_elmt_multiply(nn.Module):
             question_fa_expand = question_fa
 
         joint_feature = image_fa * question_fa_expand
-        joint_feature = self.dropout(joint_feature)
-
-        return joint_feature
+        if image_text_feat is not None and self.Fa_image_text_feat is not None:
+            # image_text_feat = image_text_feat.mean(1)
+            image_text_feat_fa = self.Fa_image_text_feat(image_text_feat)
+            image_text_feature = image_text_feat_fa*question_fa_expand
+            final_feature = torch.cat((joint_feature, image_text_feature), dim=1)
+            final_feature = self.dropout(final_feature)
+            return final_feature
+        else:
+            return joint_feature
 
 
 class two_layer_elmt_multiply(nn.Module):

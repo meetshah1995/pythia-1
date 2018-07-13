@@ -54,11 +54,12 @@ def get_output_folder_name(config_basename, cfg_overwrite_obj, seed):
 def lr_lambda_fun(i_iter):
     if i_iter <= cfg.training_parameters.wu_iters:
         alpha = float(i_iter) / float(cfg.training_parameters.wu_iters)
-        return cfg.training_parameters.wu_factor * (1. - alpha) + alpha
+        factor =  cfg.training_parameters.wu_factor * (1. - alpha) + alpha
+        return factor
     else:
         idx = bisect(cfg.training_parameters.lr_steps, i_iter)
-        return pow(cfg.training_parameters.lr_ratio, idx)
-
+        factor = pow(cfg.training_parameters.lr_ratio, idx)
+        return factor
 
 def get_optim_scheduler(optimizer):
     return LambdaLR(optimizer, lr_lambda=lr_lambda_fun)
@@ -130,9 +131,15 @@ if __name__ == '__main__':
               {'params': model.question_embedding_models.parameters()},
               {'params': model.multi_modal_combine.parameters()},
               {'params': model.classifier.parameters()},
-              {'params': model.image_feature_encode_list.parameters(), 'lr': cfg.optimizer.par.lr * 0.1}]
+              {'params': model.image_feature_encode_list.parameters(),
+              'lr': cfg.optimizer.par.lr * 0.1}]
+    if model.image_text_feature_encode_list is not None:
+        params += [{'params': model.image_text_feature_encode_list.parameters()}]
+    if model.image_text_feat_embedding_models_list is not None:
+        params += [{'params': model.image_text_feat_embedding_models_list.parameters()}]
 
     my_optim = getattr(optim, cfg.optimizer.method)(params, **cfg.optimizer.par)
+    print(cfg.training_parameters)
 
     i_epoch = 0
     i_iter = 0

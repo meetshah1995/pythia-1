@@ -10,7 +10,7 @@ data:
   imdb_file_val:
   - imdb/imdb_vizwiz_val.npy
   vocab_question_file: vocabulary_glove.txt
-  image_fast_reader: True
+  image_fast_reader: False
 model:
   question_embedding:
   - method: att_que_embed
@@ -27,9 +27,9 @@ training_parameters:
     clip_norm_mode: all
     max_grad_l2_norm: 0.25
     lr_steps:
-    - 1500
     - 3000
     - 6000
+    - 8000
     lr_ratio: 0.1
     wu_factor: 0.2
     wu_iters: 1000

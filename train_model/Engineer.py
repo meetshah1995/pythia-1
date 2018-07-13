@@ -183,12 +183,18 @@ def one_stage_eval_model(data_reader_eval, myModel):
 def one_stage_run_model(batch, myModel, add_graph=False, log_dir=None):
     input_text_seqs = batch['input_seq_batch']
     input_images = batch['image_feat_batch']
+    image_text_feat = batch['image_text_feat']
     input_txt_variable = Variable(input_text_seqs.type(torch.LongTensor))
     input_txt_variable = input_txt_variable.cuda() if use_cuda else input_txt_variable
 
     image_feat_variable = Variable(input_images)
     image_feat_variable = image_feat_variable.cuda() if use_cuda else image_feat_variable
     image_feat_variables = [image_feat_variable]
+
+    ## Support only one image text feat variable
+    image_text_feat_variable = Variable(image_text_feat.type(torch.LongTensor))
+    image_text_feat_variable = image_text_feat_variable.cuda() if use_cuda else image_text_feat_variable
+    image_text_feat_variables = [image_text_feat_variable]
 
     image_dim_variable = None
     if 'image_dim' in batch:
@@ -206,7 +212,7 @@ def one_stage_run_model(batch, myModel, add_graph=False, log_dir=None):
         i += 1
 
     logit_res = myModel(input_question_variable=input_txt_variable, image_dim_variable=image_dim_variable,
-                        image_feat_variables=image_feat_variables)
+                        image_feat_variables=image_feat_variables, image_text_feat_variables=image_text_feat_variables)
 
     if add_graph:
         with SummaryWriter(log_dir=log_dir, comment='basicblock') as w:

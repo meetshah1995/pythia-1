@@ -5,6 +5,7 @@ from dataset_utils.vqa_concate_dataset import vqa_concate_dataset
 def prepare_data_set(imdb_file_label, image_dir_label,**data_config):
     # get the potential shared data_config info
     data_root_dir = data_config['data_root_dir']
+    print(data_config['vocab_question_file'])
     vocab_question_file = os.path.join(data_root_dir, data_config['vocab_question_file'])
     vocab_answer_file = os.path.join(data_root_dir, data_config['vocab_answer_file'])
     question_max_len = data_config['question_max_len'] if 'question_max_len' in data_config else 26

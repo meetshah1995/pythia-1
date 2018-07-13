@@ -59,13 +59,13 @@ class vqa_multi_modal_model(nn.Module):
 
     def forward(self, image_feat_variables, input_question_variable, image_dim_variable,input_answers=None, image_text_feat_variables=None, **kwargs):
 
-        print(image_feat_variables.shape)
-        print(input_question_variable.shape)
-        print(image_dim_variable.shape)
-        print(input_answers.shape)
-        print(image_text_feat_variables.shape)
-        import pdb
-        pdb.set_trace()
+        # print(image_feat_variables.shape)
+        # print(input_question_variable.shape)
+        # print(image_dim_variable.shape)
+        # print(input_answers.shape)
+        # print(image_text_feat_variables.shape)
+        # import pdb
+        # pdb.set_trace()
 
 
         question_embeddings = []

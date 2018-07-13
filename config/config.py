@@ -30,7 +30,7 @@ __C.data.image_max_loc = 137
 __C.data.data_root_dir = "data"
 
 __C.data.vocab_question_file = "vocabulary_vqa.txt"
-__C.data.vocab_answer_file = "answers_vizwiz.txt"
+__C.data.vocab_answer_file = "answers_vizwiz_large.txt"
 
 __C.data.image_feat_train = ["rcnn_10_100/train2014", "rcnn_10_100/val2014"]
 __C.data.imdb_file_train = ["imdb/imdb_train2014.npy", "imdb/imdb_val2train2014.npy"]

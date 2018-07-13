@@ -157,7 +157,7 @@ if __name__ == '__main__':
     out_dir = args.out_dir
     min_freq = args.min_freq
 
-    answer_file_name = 'answers_vqa.txt'
+    answer_file_name = 'answers_vizwiz_large.txt'
     os.makedirs(out_dir, exist_ok=True)
 
     train_answers = json.load(open(train_annotation_file, 'r'))['annotations']
@@ -178,4 +178,3 @@ if __name__ == '__main__':
     answer_file = os.path.join(out_dir, answer_file_name)
     with open(answer_file, 'w') as f:
         f.writelines([w+'\n' for w in answer_list])
-
