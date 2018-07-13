@@ -1,0 +1,36 @@
+data:
+  data_root_dir: /private/home/nvivek/VQA/training_data/
+  image_feat_train:
+  - rcnn_adaptive_vizwiz/vizwiz_ocr_text
+  image_feat_val:
+  - rcnn_adaptive_vizwiz/vizwiz_ocr_text
+  image_max_loc: 137
+  imdb_file_train:
+  - imdb/imdb_vizwiz_train.npy
+  imdb_file_val:
+  - imdb/imdb_vizwiz_val.npy
+  vocab_question_file: vocabulary_glove.txt
+  image_fast_reader: True
+model:
+  question_embedding:
+  - method: att_que_embed
+    par:
+      embedding_init_file: glove.6B.300d.txt.npy
+  image_feature_encoding:
+  - method: default_image
+    par: {}
+  image_text_feat_encoding:
+  - method: image_text_feat_encoding
+    par: {}
+training_parameters:
+    report_interval : 100
+    clip_norm_mode: all
+    max_grad_l2_norm: 0.25
+    lr_steps:
+    - 1500
+    - 3000
+    - 6000
+    lr_ratio: 0.1
+    wu_factor: 0.2
+    wu_iters: 1000
+    max_iter: 15000
