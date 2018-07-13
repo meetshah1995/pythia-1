@@ -5,8 +5,8 @@ from config.collections import AttrDict
 # ---------------------------------------------------------------------------- #
 
 Adamax_par = AttrDict()
-Adamax_par.lr = 0.01
-Adamax_par.weight_decay = 0
+Adamax_par.lr = 0.001
+Adamax_par.weight_decay = 1e-5
 Adamax_par.eps = 0.00000001
 
 OPTIMIZER = {
@@ -33,9 +33,14 @@ finetune_faster_rcnn_fpn_fc7.bias_file = ""
 
 default_feature = AttrDict()
 
+image_text_feat_encoding = AttrDict()
+image_text_feat_encoding.embedding_dim = 300
+image_text_feat_encoding.embedding_init_file = "glove.6B.300d.txt.npy"
+
 IMAGE_FEATURE_MODEL = {
     "finetune_faster_rcnn_fpn_fc7": finetune_faster_rcnn_fpn_fc7,
-    "default": default_feature
+    "default_image": default_feature,
+    "image_text_feat_encoding": image_text_feat_encoding
 }
 
 
@@ -59,7 +64,6 @@ QUESTION_MODEL={
     "att_que_embed": att_que_embed
 }
 
-
 # ---------------------------------------------------------------------------- #
 # modal combine options:
 # ---------------------------------------------------------------------------- #
@@ -80,8 +84,6 @@ MODAL_COMBINE = {
 }
 
 
-
-
 # ----------------------------------------------------------------------------- #
 # linear_transform options
 # ----------------------------------------------------------------------------- #
@@ -91,7 +93,6 @@ linear_transform.out_dim = 1
 conv_transform = AttrDict()
 conv_transform.out_dim = 2
 conv_transform.hidden_dim = 512
-
 
 
 # ----------------------------------------------------------------------------- #
@@ -116,13 +117,11 @@ weight_norm_classifier.dropout = 0.1
 linear_classifier = AttrDict()
 
 
-
-
 # ----------------------------------------------------------------------------- #
 # Adamax optimizer
 # ----------------------------------------------------------------------------- #
 adamax_opt = AttrDict()
-adamax_opt.lr = 0.01
+adamax_opt.lr = 0.001
 adamax_opt.weight_decay = 0
 adamax_opt.eps = 0.00000001
 
@@ -136,14 +135,12 @@ MODEL_TYPE_PAR_DICT = {
     'att_que_embed' : QUESTION_MODEL['att_que_embed'],
     'logit_classifier' : logit_classifier,
     'Adamax': adamax_opt,
-    'default_image': IMAGE_FEATURE_MODEL['default'],
+    'default_image': IMAGE_FEATURE_MODEL['default_image'],
     'finetune_faster_rcnn_fpn_fc7': IMAGE_FEATURE_MODEL['finetune_faster_rcnn_fpn_fc7'],
+    'image_text_feat_encoding': IMAGE_FEATURE_MODEL['image_text_feat_encoding'],
     'weight_norm_classifier': weight_norm_classifier,
-    'linear_classifier': linear_classifier
+    'linear_classifier': linear_classifier,
 }
-
-
-
 
 
 class ModelParPair(AttrDict):
