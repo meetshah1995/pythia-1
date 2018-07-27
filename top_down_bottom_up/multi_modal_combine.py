@@ -110,7 +110,6 @@ class non_linear_elmt_multiply(nn.Module):
             self.Fa_image_text_feat = nonlinear_layer(image_text_feat_emb_dim, kwargs['hidden_size'])
             self.out_dim *=2
 
-
     def forward(self, image_feat, question_embedding, image_text_feat=None):
         image_fa = self.Fa_image(image_feat)
         question_fa = self.Fa_txt(question_embedding)
@@ -122,8 +121,8 @@ class non_linear_elmt_multiply(nn.Module):
             question_fa_expand = question_fa
 
         joint_feature = image_fa * question_fa_expand
+
         if image_text_feat is not None and self.Fa_image_text_feat is not None:
-            # image_text_feat = image_text_feat.mean(1)
             image_text_feat_fa = self.Fa_image_text_feat(image_text_feat)
             image_text_feature = image_text_feat_fa*question_fa_expand
             final_feature = torch.cat((joint_feature, image_text_feature), dim=1)

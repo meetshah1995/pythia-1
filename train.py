@@ -17,6 +17,9 @@ import glob
 import torch
 from torch.optim.lr_scheduler import LambdaLR
 from bisect import bisect
+import gc
+import operator as op
+import functools
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -79,7 +82,7 @@ def print_eval(prepare_data_fun, out_label):
     model.load_state_dict(torch.load(model_file)['state_dict'])
 
     question_ids, soft_max_result = run_model(model, data_reader_test, ans_dic.UNK_idx)
-    print_result(question_ids, soft_max_result, ans_dic, out_file, json_only=False, pkl_res_file=pkl_res_file)
+    print_result(question_ids, soft_max_result, ans_dic, out_file, json_only=False, pkl_res_file=pkl_res_file, test=out_label)
 
 
 if __name__ == '__main__':
@@ -169,11 +172,39 @@ if __name__ == '__main__':
 
     print("BEGIN TRAINING MODEL...")
 
+    total = 0
+    print("Before training")
+    for obj in gc.get_objects():
+        try:
+            if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
+                print(functools.reduce(op.mul, obj.size()) if len(obj.size()) > 0 else 0, type(obj), obj.size())
+                total += functools.reduce(op.mul, obj.size())
+        except:
+            continue
+
+    print(str(total*4.0/(10**9)) + " GB")
+
     one_stage_train(my_model, data_reader_trn, my_optim, my_loss, data_reader_eval=data_reader_val,
                     snapshot_dir=snapshot_dir, log_dir=boards_dir, start_epoch=i_epoch, i_iter=i_iter,
                     scheduler=scheduler)
 
+    del data_reader_trn, data_reader_val, my_loss, my_optim
+    gc.collect()
+
+    print("After training")
+    for obj in gc.get_objects():
+        try:
+            if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
+                print(functools.reduce(op.mul, obj.size()) if len(obj.size()) > 0 else 0, type(obj), obj.size())
+                total += functools.reduce(op.mul, obj.size())
+        except:
+            continue
+
+    print(str(total*4.0/(10**9)) + " GB")
+
+
     print("BEGIN PREDICTING ON TEST/VAL set...")
+    gc.collect()
 
     if 'predict' in cfg.run:
         print_eval(prepare_test_data_set, "test")

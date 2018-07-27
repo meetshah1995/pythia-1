@@ -2,11 +2,12 @@ from global_variables.global_variables import *
 from top_down_bottom_up.top_down_bottom_up_model import vqa_multi_modal_model
 from top_down_bottom_up.image_attention import build_image_attention_module
 from top_down_bottom_up.classifier import build_classifier
-from top_down_bottom_up.question_embeding import build_question_encoding_module
+from top_down_bottom_up.question_embedding import build_question_encoding_module
 from top_down_bottom_up.image_embedding import image_embedding
 from top_down_bottom_up.multi_modal_combine import build_modal_combine_module
 from top_down_bottom_up.intermediate_layer import inter_layer
 from top_down_bottom_up.image_feature_encoding import build_image_feature_encoding
+import torch
 import torch.nn as nn
 import json
 
@@ -24,15 +25,15 @@ def prepare_model(num_vocab, num_choices, **model_config):
         f.write(config_str)
 
     ## generate the list of question embedding models
-    ques_embeding_models_list = model_config['question_embedding']
-    question_embeding_models = nn.ModuleList()
+    ques_embedding_models_list = model_config['question_embedding']
+    question_embedding_models = nn.ModuleList()
     final_question_embedding_dim = 0
-    for ques_embeding_model in ques_embeding_models_list:
-        ques_model_key = ques_embeding_model['method']
-        ques_model_par = ques_embeding_model['par']
+    for ques_embedding_model in ques_embedding_models_list:
+        ques_model_key = ques_embedding_model['method']
+        ques_model_par = ques_embedding_model['par']
         tmp_model = build_question_encoding_module(ques_model_key, ques_model_par, num_vocab=num_vocab)
 
-        question_embeding_models.append(tmp_model)
+        question_embedding_models.append(tmp_model)
         final_question_embedding_dim += tmp_model.text_out_dim
 
     ## Image text feature encoding
@@ -115,12 +116,13 @@ def prepare_model(num_vocab, num_choices, **model_config):
                                   model_config['classifier']['par'],
                                   in_dim=joint_embedding_dim, out_dim=num_choices)
     print("Building final model")
+    print(question_embedding_models)
     print(image_emdedding_models_list)
     print(image_feature_encode_list)
     print(image_text_feat_embedding_models_list)
     print(image_text_feature_encode_list)
     my_model = vqa_multi_modal_model(image_emdedding_models_list,
-                                     question_embeding_models,
+                                     question_embedding_models,
                                      multi_modal_combine,
                                      classifier,
                                      image_feature_encode_list,
@@ -128,6 +130,8 @@ def prepare_model(num_vocab, num_choices, **model_config):
                                      image_text_feat_embedding_models_list,
                                      image_text_feature_encode_list)
     print("Done")
+
+    use_cuda = torch.cuda.is_available()
     if use_cuda:
         my_model = my_model.cuda()
 

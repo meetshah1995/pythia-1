@@ -87,7 +87,6 @@ def build_imdb(image_set, valid_answer_set,coco_set_name =None, annotation_set_n
     imdb[0] = header
     return imdb
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_dir", type=str, required=True, help="data directory")
@@ -97,30 +96,18 @@ if __name__ == '__main__':
     data_dir = args.data_dir
     out_dir = args.out_dir
 
-    vocab_answer_file = os.path.join(out_dir, 'answers_vqa.txt')
-
+    vocab_answer_file = os.path.join(data_dir, 'answers_vizwiz.txt')
 
     answer_dict = text_processing.VocabDict(vocab_answer_file)
     valid_answer_set = set(answer_dict.word_list)
+    print(len(valid_answer_set))
 
-    imdb_train2014 = build_imdb('train2014', valid_answer_set)
-    imdb_val2014 = build_imdb('val2014', valid_answer_set)
-    imdb_test2015 = build_imdb('test2015', valid_answer_set)
-    #imdb_test_dev2015 = build_imdb('test-dev2015', valid_answer_set)
+    imdb_vizwiz_train = build_imdb('vizwiz_train', valid_answer_set)
+    imdb_vizwiz_val = build_imdb('vizwiz_val', valid_answer_set)
+    imdb_vizwiz_test = build_imdb('vizwiz_test', valid_answer_set)
 
-
-    imdb_dir = os.path.join(out_dir,'imdb')
+    imdb_dir = os.path.join(out_dir, 'imdb')
     os.makedirs(imdb_dir, exist_ok=True)
-    np.save(os.path.join(imdb_dir, 'imdb_train2014.npy'), np.array(imdb_train2014))
-    np.save(os.path.join(imdb_dir, 'imdb_val2014.npy'), np.array(imdb_val2014))
-    np.save(os.path.join(imdb_dir, 'imdb_test2015.npy'), np.array(imdb_test2015))
-    #np.save(os.path.join(imdb_dir, 'imdb_test-dev2015.npy'), np.array(imdb_test_dev2015))
-
-    imdb_minival2014 = build_imdb('minival2014', valid_answer_set,coco_set_name="val2014", annotation_set_name="val2014")
-    imdb_val2train2014 = build_imdb('val2train2014', valid_answer_set, coco_set_name="val2014",
-                                  annotation_set_name="val2014")
-
-    np.save(os.path.join(imdb_dir, 'imdb_minival2014.npy'), np.array(imdb_minival2014))
-    np.save(os.path.join(imdb_dir, 'imdb_val2train2014.npy'), np.array(imdb_val2train2014))
-
-
+    np.save(os.path.join(imdb_dir, 'imdb_vizwiz_train.npy'), np.array(imdb_vizwiz_train))
+    np.save(os.path.join(imdb_dir, 'imdb_vizwiz_val.npy'), np.array(imdb_vizwiz_val))
+    np.save(os.path.join(imdb_dir, 'imdb_vizwiz_test.npy'), np.array(imdb_vizwiz_test))

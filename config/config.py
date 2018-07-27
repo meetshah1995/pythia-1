@@ -1,5 +1,4 @@
 import logging
-import os
 from config.collections import AttrDict
 from config.function_config_lib import ModelParPair
 
@@ -27,19 +26,19 @@ __C.data.question_max_len = 14
 __C.data.image_fast_reader = False
 __C.data.image_max_loc = 137
 
-__C.data.data_root_dir = "data"
+__C.data.data_root_dir = "/private/home/nvivek/VQA/training_data/"
 
-__C.data.vocab_question_file = "vocabulary_vqa.txt"
-__C.data.vocab_answer_file = "answers_vizwiz_large.txt"
+__C.data.vocab_question_file = "vocabulary_glove.txt"
+__C.data.vocab_answer_file = "answers_vizwiz.txt"
 
-__C.data.image_feat_train = ["rcnn_10_100/train2014", "rcnn_10_100/val2014"]
-__C.data.imdb_file_train = ["imdb/imdb_train2014.npy", "imdb/imdb_val2train2014.npy"]
+__C.data.image_feat_train = ["rcnn_adaptive_vizwiz/vizwiz"]
+__C.data.imdb_file_train = ["imdb/imdb_vizwiz_train.npy"]
 
-__C.data.imdb_file_val = ["imdb/imdb_minival2014.npy"]
-__C.data.image_feat_val = ["rcnn_10_100/val2014"]
+__C.data.imdb_file_val = ["imdb/imdb_vizwiz_val.npy"]
+__C.data.image_feat_val = ["rcnn_adaptive_vizwiz/vizwiz"]
 
-__C.data.imdb_file_test = ["imdb/imdb_test2015.npy"]
-__C.data.image_feat_test = ["rcnn_10_100/test2015"]
+__C.data.imdb_file_test = ["imdb/imdb_vizwiz_test.npy"]
+__C.data.image_feat_test = ["rcnn_adaptive_vizwiz/vizwiz"]
 
 
 # ---------------------------------------------------------------------------- #
@@ -53,7 +52,7 @@ __C.training_parameters.max_grad_l2_norm = 0.25
 __C.training_parameters.wu_factor = 0.2
 __C.training_parameters.wu_iters = 1000
 __C.training_parameters.max_iter = 12000
-__C.training_parameters.lr_steps = [5000, 7000, 9000, 11000]
+__C.training_parameters.lr_steps = [3000, 6000, 8000]
 __C.training_parameters.lr_ratio = 0.1
 
 
@@ -76,7 +75,7 @@ __C.optimizer = ModelParPair('Adamax')
 # ---------------------------------------------------------------------------- #
 
 __C.model = AttrDict()
-__C.model.use_image_text_feat = True
+__C.model.use_image_text_feat = False
 __C.model.image_feat_dim = 2048
 __C.model.image_text_feat_dim = 300
 __C.model.num_image_text_feat = 1

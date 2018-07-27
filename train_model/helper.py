@@ -1,33 +1,30 @@
-import yaml
-import argparse
 import numpy as np
-from torch.utils.data import DataLoader
 from train_model.Engineer import one_stage_run_model, masked_unk_softmax
-from train_model.dataset_utils import prepare_test_data_set
 import torch
 import json
 import _pickle as pickle
 import timeit
 import sys
 from train_model.model_factory import prepare_model
+import gc
+import operator as op
+import functools
 
 
 class answer_json:
     def __init__(self):
         self.answers = []
 
-    def add(self, ques_id, ans):
+    def add(self, image, ans):
         res = {
-            "question_id": ques_id,
+            "image": image,
             "answer": ans
         }
         self.answers.append(res)
 
 
 def build_model(config, dataset):
-    assembler = dataset.assembler if hasattr(dataset, 'assembler') else None
     num_vocab_txt = dataset.vocab_dict.num_vocab
-    num_vocab_nmn = 0 if assembler is None else len(assembler.module_names)
     num_choices = dataset.answer_dict.num_vocab
 
     num_image_feat = len(config['data']['image_feat_train'][0].split(','))
@@ -39,6 +36,18 @@ def build_model(config, dataset):
 def run_model(current_model, data_reader, UNK_idx=0):
     softmax_tot = []
     q_id_tot = []
+
+    print("Before eval")
+    total = 0
+    for obj in gc.get_objects():
+        try:
+            if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
+                print(functools.reduce(op.mul, obj.size()) if len(obj.size()) > 0 else 0, type(obj), obj.size())
+                total += functools.reduce(op.mul, obj.size())
+        except:
+            continue
+
+    print(str(total*4.0/(10**9)) + " GB")
 
     start = timeit.default_timer()
     for i, batch in enumerate(data_reader):
@@ -62,7 +71,7 @@ def run_model(current_model, data_reader, UNK_idx=0):
     return q_id_tot, softmax_result
 
 
-def print_result(question_ids, soft_max_result, ans_dic, out_file, json_only=True,pkl_res_file=None):
+def print_result(question_ids, soft_max_result, ans_dic, out_file, json_only=True,pkl_res_file=None,test="test"):
     predicted_answers = np.argmax(soft_max_result, axis=1)
 
     if not json_only:
@@ -75,7 +84,14 @@ def print_result(question_ids, soft_max_result, ans_dic, out_file, json_only=Tru
     for idx, pred_idx in enumerate(predicted_answers):
         question_id = question_ids[idx]
         pred_ans = ans_dic.idx2word(pred_idx)
-        ans_json_out.add(question_id, pred_ans)
+        if test == "test":
+            image_id = question_id + 20000
+            image = 'VizWiz_test_%012d.jpg' % image_id
+        else:
+            image_id = question_id + 28000
+            image = 'VizWiz_val_%012d.jpg' % image_id
+
+        ans_json_out.add(image, pred_ans)
 
     ##dump the result
     with open(out_file, "w") as f:

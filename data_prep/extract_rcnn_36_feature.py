@@ -34,6 +34,7 @@ val_ids_file = args.val_id
 #val_imgids = cPickle.load(open(val_ids_file,'rb'))
 
 train_imgids = set(range(0,20000))
+test_imgids = set(range(20000,28000))
 val_imgids = set(range(28000,31173))
 
 out_dir = args.out_dir
@@ -43,6 +44,7 @@ os.makedirs(os.path.join(out_dir, ''), exist_ok=True)
 
 im_with_ocr_bboxes = 0
 max_boxes = -1
+min_boxes = 300
 
 print("reading tsv...")
 with open(infile, "r") as tsv_in_file:
@@ -56,7 +58,7 @@ with open(infile, "r") as tsv_in_file:
             image_h = float(item['image_h'])
             classes = item['classes']
             classes = list(json.loads(classes))
-            attributes = item['attributes']
+            attributes = list(json.loads(item['attributes']))
             text_feat = []
             for clas, attr in zip(classes, attributes):
                 if len(attr) > 0:
@@ -74,6 +76,10 @@ with open(infile, "r") as tsv_in_file:
             if (image_id != ocr_image_id):
                 print("Image ids did not match")
                 print(str(image_id) + " " + str(ocr_image_id))
+                break
+
+            if (item['num_boxes']) > max_boxes:
+                max_boxes = item['num_boxes']
 
             image_bboxes = np.frombuffer(
                 base64.b64decode(item['boxes']),
@@ -93,7 +99,7 @@ with open(infile, "r") as tsv_in_file:
                     dtype=np.float32).reshape((ocr_item['num_boxes'], -1))
 
                 for ocr_text in ocr_texts:
-                    text_feat.append(ocr_text)
+                    text_feat.append(ocr_text.lower())
 
                 im_with_ocr_bboxes += 1
 
@@ -103,8 +109,15 @@ with open(infile, "r") as tsv_in_file:
                 image_bboxes = np.concatenate((image_bboxes, ocr_image_bboxes))
                 image_feat = np.concatenate((image_feat, ocr_image_feat))
 
-            assert(len(text_feat) == image_feat.shape[0])
+            text_feat = np.asanyarray(text_feat)
+            assert(text_feat.shape[0] == image_feat.shape[0])
+            if (text_feat.shape[0] == 0):
+                print("Empty text feat")
+                print(text_feat.shape)
+                print(text_feat)
+                print(image_bboxes.shape)
             image_feat_and_boxes = {"image_bboxes": image_bboxes, "image_feat": image_feat, "image_text": text_feat}
+            # image_feat_and_boxes = {"image_bboxes": image_bboxes, "image_feat": image_feat}
 
             if image_id in train_imgids:
                 train_imgids.remove(image_id)
@@ -113,6 +126,10 @@ with open(infile, "r") as tsv_in_file:
             elif image_id in val_imgids:
                 val_imgids.remove(image_id)
                 image_file_name =image_file_name =os.path.join(out_dir,'COCO_vizwiz_val_%012d.npy' % image_id)
+                np.save(image_file_name, image_feat_and_boxes)
+            elif image_id in test_imgids:
+                test_imgids.remove(image_id)
+                image_file_name =image_file_name =os.path.join(out_dir,'COCO_vizwiz_test_%012d.npy' % image_id)
                 np.save(image_file_name, image_feat_and_boxes)
             else:
                 assert False, 'Unknown image id: %d' % image_id

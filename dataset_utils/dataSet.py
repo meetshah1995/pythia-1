@@ -3,7 +3,6 @@ from torch.utils.data import Dataset
 from dataset_utils import text_processing
 import numpy as np
 from global_variables.global_variables import imdb_version
-import json
 
 
 class faster_RCNN_feat_reader:
@@ -248,13 +247,16 @@ class vqa_dataset(Dataset):
         image_file_name = self.imdb[idx]['feature_path']
         image_feats, image_boxes, image_loc, image_text_feat = self._get_image_features_(image_file_name)
 
-
-        for i, text in enumerate(image_text_feat):
-            feat_tokens = text_processing.tokenize(text)
-            feat_inds = [self.vocab_dict.word2idx(w) for w in feat_tokens]
-            feat_seq_length = len(feat_inds)
-            read_len = min(seq_length, self.T_encoder)
-            feat_seq[i,:read_len] = question_inds[:read_len]
+        if image_text_feat is not None:
+            for i, text in enumerate(image_text_feat):
+                feat_tokens = text_processing.tokenize(text)
+                feat_inds = [self.vocab_dict.word2idx(w) for w in feat_tokens]
+                feat_seq_length = len(feat_inds)
+                read_len = min(feat_seq_length, self.T_encoder)
+                feat_seq[i, :read_len] = feat_inds[:read_len]
+        else:
+            print("Empty image text feat")
+            print(image_file_name)
 
         answer = None
         valid_answers_idx = np.zeros((10),np.int32)
@@ -287,14 +289,15 @@ class vqa_dataset(Dataset):
         sample = dict(input_seq_batch=input_seq,
                      seq_length_batch=seq_length)
 
+        if image_text_feat is not None:
+            sample['image_text_feat'] = feat_seq
+
         for im_idx, image_feat in enumerate(image_feats):
             if im_idx ==0:
                 sample['image_feat_batch']=image_feat
             else:
                 feat_key = "image_feat_batch_%s" % str(im_idx)
                 sample[feat_key] = image_feat
-
-        sample['image_text_feat'] = feat_seq
 
         if image_loc is not None:
             sample['image_dim'] = image_loc

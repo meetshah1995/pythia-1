@@ -8,15 +8,15 @@ from config.config import cfg
 
 def build_question_encoding_module(method, par, num_vocab):
     if method == "default_que_embed":
-        return QuestionEmbeding(num_vocab, **par)
+        return QuestionEmbedding(num_vocab, **par)
     elif method == "att_que_embed":
         return AttQuestionEmbedding(num_vocab, **par)
     else:
         raise NotImplementedError("unknown question encoding model %s" % method)
 
-class QuestionEmbeding(nn.Module):
+class QuestionEmbedding(nn.Module):
     def __init__(self, **kwargs):
-        super(QuestionEmbeding, self).__init__()
+        super(QuestionEmbedding, self).__init__()
         self.text_out_dim = kwargs['LSTM_hidden_size']
         self.num_vocab = kwargs['num_vocab']
         self.embedding_dim = kwargs['embedding_dim']
