@@ -22,13 +22,13 @@ __C.data.dataset = "vizwiz"
 __C.data.num_workers = 5
 __C.data.batch_size = 512
 __C.data.image_depth_first = False
-__C.data.question_max_len = 14
+__C.data.question_max_len = 20
 __C.data.image_fast_reader = False
 __C.data.image_max_loc = 137
 
 __C.data.data_root_dir = "/private/home/nvivek/VQA/training_data/"
 
-__C.data.vocab_question_file = "vocabulary_glove.txt"
+__C.data.vocab_question_file = "vocabulary_100k.txt"
 __C.data.vocab_answer_file = "answers_vizwiz.txt"
 
 __C.data.image_feat_train = ["rcnn_adaptive_vizwiz/vizwiz"]
@@ -61,6 +61,8 @@ __C.training_parameters.lr_ratio = 0.1
 # ---------------------------------------------------------------------------- #
 
 __C.loss = 'logitBCE'
+__C.att_loss = 'BCE'
+__C.ans_loss = 'logitBCE'
 
 
 # ---------------------------------------------------------------------------- #
@@ -75,13 +77,18 @@ __C.optimizer = ModelParPair('Adamax')
 # ---------------------------------------------------------------------------- #
 
 __C.model = AttrDict()
-__C.model.use_image_text_feat = False
+__C.model.use_image_text_feat = True
+__C.model.use_attention_supervision = True
+__C.model.use_answer_supervision = True
+__C.model.att_loss_weight = 0.3
+__C.model.ans_loss_weight = 0.3
+__C.model.itf_lr = 0.1
 __C.model.image_feat_dim = 2048
 __C.model.image_text_feat_dim = 300
 __C.model.num_image_text_feat = 1
 __C.model.question_embedding = [ModelParPair("att_que_embed")]
 __C.model.image_text_feat_encoding = [ModelParPair("image_text_feat_encoding")]
-__C.model.image_feature_encoding=[ModelParPair('default_image')]
+__C.model.image_feature_encoding = [ModelParPair('default_image')]
 __C.model.image_embedding_models = []
 __C.model.image_text_feat_embedding_models = []
 __C.model.modal_combine = ModelParPair('non_linear_elmt_multiply')

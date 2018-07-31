@@ -5,14 +5,15 @@ from dataset_utils import text_processing
 import argparse
 from dataset_utils.create_imdb_header import create_header
 
-
+with open('attention_sup.json', 'r') as f:
+    att_sups = json.load(f)
 
 def extract_answers(q_answers, valid_answer_set):
     all_answers = [answer["answer"] for answer in q_answers]
     valid_answers = [a for a in all_answers if a in valid_answer_set]
     return all_answers, valid_answers
 
-def build_imdb(image_set, valid_answer_set,coco_set_name =None, annotation_set_name=None):
+def build_imdb(image_set, valid_answer_set, coco_set_name =None, annotation_set_name=None):
     annotation_file = os.path.join(data_dir, 'v2_mscoco_%s_annotations.json')
     question_file = os.path.join(data_dir, 'v2_OpenEnded_mscoco_%s_questions.json')
 
@@ -48,6 +49,7 @@ def build_imdb(image_set, valid_answer_set,coco_set_name =None, annotation_set_n
     imdb = [None]*(len(questions)+1)
 
     unk_ans_count = 0
+    uns_count = 0
     for n_q, q in enumerate(questions):
         if (n_q+1) % 10000 == 0:
             print('processing %d / %d' % (n_q+1, len(questions)))
@@ -75,6 +77,18 @@ def build_imdb(image_set, valid_answer_set,coco_set_name =None, annotation_set_n
             iminfo['all_answers'] = all_answers
             iminfo['valid_answers'] = valid_answers
             has_answer = True
+            att_sup = att_sups[str(image_id)]
+            att_sup += [0.0]*(137-len(att_sup))
+            iminfo['att_sup'] = np.asarray(att_sup).reshape(137, 1)
+            ans_sup = np.zeros((1,3))
+            if ann['multiple_choice_answer'] == 'unanswerable':
+                ans_sup[0, 0] = 1
+                uns_count += 1
+            elif ann['multiple_choice_answer'] == 'unsuitable':
+                ans_sup[0, 1] = 1
+            else:
+                ans_sup[0, 2] = 1
+            iminfo['ans_sup'] = ans_sup
 
         if load_gt_layout:
             #gt_layout_tokens = qid2layout_dict[question_id]
@@ -83,6 +97,7 @@ def build_imdb(image_set, valid_answer_set,coco_set_name =None, annotation_set_n
 
         imdb[n_q+1] = iminfo
     print('total %d out of %d answers are <unk>' % (unk_ans_count, len(questions)))
+    print('total %d out of %d answers are unanswerable' % (uns_count, len(questions)))
     header = create_header("vqa",has_answer= has_answer,has_gt_layout=has_gt_layout)
     imdb[0] = header
     return imdb
@@ -96,7 +111,7 @@ if __name__ == '__main__':
     data_dir = args.data_dir
     out_dir = args.out_dir
 
-    vocab_answer_file = os.path.join(data_dir, 'answers_vizwiz.txt')
+    vocab_answer_file = os.path.join(data_dir, 'answers_vizwiz_7k.txt')
 
     answer_dict = text_processing.VocabDict(vocab_answer_file)
     valid_answer_set = set(answer_dict.word_list)
@@ -108,6 +123,6 @@ if __name__ == '__main__':
 
     imdb_dir = os.path.join(out_dir, 'imdb')
     os.makedirs(imdb_dir, exist_ok=True)
-    np.save(os.path.join(imdb_dir, 'imdb_vizwiz_train.npy'), np.array(imdb_vizwiz_train))
-    np.save(os.path.join(imdb_dir, 'imdb_vizwiz_val.npy'), np.array(imdb_vizwiz_val))
-    np.save(os.path.join(imdb_dir, 'imdb_vizwiz_test.npy'), np.array(imdb_vizwiz_test))
+    np.save(os.path.join(imdb_dir, 'imdb_vizwiz_train_large_att_uns_una_sup.npy'), np.array(imdb_vizwiz_train))
+    np.save(os.path.join(imdb_dir, 'imdb_vizwiz_val_large_att_uns_una_sup.npy'), np.array(imdb_vizwiz_val))
+    np.save(os.path.join(imdb_dir, 'imdb_vizwiz_test_large_att_uns_una_sup.npy'), np.array(imdb_vizwiz_test))

@@ -1,11 +1,15 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from global_variables.global_variables import use_cuda
 
+device = torch.device("cuda" if use_cuda else "cpu")
 
 def get_loss_criterion(loss_config):
     if loss_config == 'logitBCE':
         loss_criterion = LogitBinaryCrossEntropy()
+    elif loss_config == 'BCE':
+        loss_criterion = BinaryCrossEntropy()
     elif loss_config == 'softmaxKL':
         loss_criterion = SoftmaxKlDivLoss()
     elif loss_config == 'wrong':
@@ -23,8 +27,24 @@ class LogitBinaryCrossEntropy(nn.Module):
         super(LogitBinaryCrossEntropy, self).__init__()
 
     def forward(self, pred_score, target_score, weights=None):
+
+        if (len(list(target_score.size())) > 2):
+            target_score = target_score.squeeze(2)
         loss = F.binary_cross_entropy_with_logits(pred_score, target_score, size_average=True)
         loss = loss * target_score.size(1)
+        loss = loss.unsqueeze(0)
+        return loss
+
+class BinaryCrossEntropy(nn.Module):
+    def __init__(self):
+        super(BinaryCrossEntropy, self).__init__()
+
+    def forward(self, pred_score, target_score, weights=None):
+
+        loss = F.binary_cross_entropy(
+            pred_score, target_score, weight=target_score)
+        loss = loss * target_score.size(1)
+        loss = loss.unsqueeze(0)
         return loss
 
 

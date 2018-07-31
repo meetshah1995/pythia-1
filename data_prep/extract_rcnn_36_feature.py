@@ -6,6 +6,23 @@ import _pickle as cPickle
 import numpy as np
 import argparse
 import json
+from dataset_utils import text_processing
+import codecs
+import torch
+
+def get_overlap_scores(a, b):
+    if len(a) < len(b):
+        c = a
+        a = b
+        b = c
+    overlap = 0.0
+    while len(b) >= 2:
+        if b in a:
+            overlap = len(b)
+            return overlap*1.0/len(a)
+        else:
+            b = b[:-1]
+    return 0.0
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--infile", type=str, required=True, help="input file")
@@ -17,6 +34,10 @@ args = parser.parse_args()
 
 out_dir = args.out_dir
 
+with open('../training_data/v2_mscoco_vizwiz_train_annotations.json', 'r') as f:
+    train_annot = json.load(f)
+with open('../training_data/v2_mscoco_vizwiz_val_annotations.json', 'r') as f:
+    val_annot = json.load(f)
 
 csv.field_size_limit(sys.maxsize)
 
@@ -26,18 +47,36 @@ OCR_FIELDNAMES = ['image_id', 'image_w','image_h','num_boxes', 'boxes', 'feature
 infile = args.infile
 ocr_infile = args.ocr_infile
 
+embed_dim = 300
+
+box_vectors_file = codecs.open('box_text_vectors_wiki_en', 'r', 'utf-8')
+
+box_vectors = {}
+
+for line in box_vectors_file:
+    data = line.rstrip().split()
+    embed = data[-embed_dim:]
+    embed = [float(x) for x in embed]
+    text_len = len(data) - embed_dim
+    text = ' '.join(data[0:text_len])
+    box_vectors[text] = embed
 
 train_ids_file = args.train_id
 val_ids_file = args.val_id
 
+train_annot = train_annot['annotations']
+val_annot = val_annot['annotations']
+
 #train_imgids = cPickle.load(open(train_ids_file,'rb'))
 #val_imgids = cPickle.load(open(val_ids_file,'rb'))
 
-train_imgids = set(range(0,20000))
-test_imgids = set(range(20000,28000))
-val_imgids = set(range(28000,31173))
+train_imgids = set(range(0, 20000))
+test_imgids = set(range(20000, 28000))
+val_imgids = set(range(28000, 31173))
 
 out_dir = args.out_dir
+
+att_sups = {}
 
 os.makedirs(os.path.join(out_dir, ''),exist_ok=True)
 os.makedirs(os.path.join(out_dir, ''), exist_ok=True)
@@ -45,13 +84,15 @@ os.makedirs(os.path.join(out_dir, ''), exist_ok=True)
 im_with_ocr_bboxes = 0
 max_boxes = -1
 min_boxes = 300
-
+train_index = 0
+val_index = 28000
 print("reading tsv...")
 with open(infile, "r") as tsv_in_file:
     with open(ocr_infile, "r") as ocr_tsv_in_file:
         reader = csv.DictReader(tsv_in_file, delimiter='\t', fieldnames=FIELDNAMES)
         ocr_reader = csv.DictReader(ocr_tsv_in_file, delimiter='\t', fieldnames=OCR_FIELDNAMES)
         for item, ocr_item in zip(reader, ocr_reader):
+            box_sentence_vectors = np.empty((0, embed_dim), float)
             item['num_boxes'] = int(item['num_boxes'])
             image_id = int(item['image_id'])
             image_w = float(item['image_w'])
@@ -60,12 +101,43 @@ with open(infile, "r") as tsv_in_file:
             classes = list(json.loads(classes))
             attributes = list(json.loads(item['attributes']))
             text_feat = []
+            att_sup = []
+            gt = ''
+            if image_id in train_imgids:
+                gt = train_annot[int(image_id) - train_index]['multiple_choice_answer']
+            elif image_id in val_imgids:
+                gt = val_annot[int(image_id) - val_index]['multiple_choice_answer']
+
+            gt_tokens = gt.split()
+
             for clas, attr in zip(classes, attributes):
+                text = ''
+                clas = ' '.join(clas.split(','))
                 if len(attr) > 0:
                     text_feat.append(attr[0] + ' ' + clas)
+                    text = attr[0] + ' ' + clas
                 else:
                     text_feat.append(clas)
+                    text = clas
+                text_tokens = text_processing.tokenize(text)
+                to_append = 0.0
+                for token in text_tokens:
+                    if token in gt_tokens:
+                        to_append = 1.0
+                        # print(token)
+                        # print(gt_tokens)
+                        break
+                to_append = get_overlap_scores(
+                    ' '.join(text_tokens), ' '.join(gt_tokens))
+                # print(' '.join(text_tokens) + " | " + ' '.join(gt_tokens) + ' | ' + str(to_append))
+                att_sup.append(to_append)
+                box_sentence_vector = box_vectors[text]
+                box_sentence_vector = np.asarray(box_sentence_vector, dtype = float)
+                box_sentence_vector = np.reshape(box_sentence_vector, (1, embed_dim))
+                box_sentence_vectors = np.append(
+                    box_sentence_vectors, box_sentence_vector, axis=0)
 
+            image_bbox_source = np.zeros((item['num_boxes'], 1), dtype=float)
             ocr_item['num_boxes'] = int(ocr_item['num_boxes'])
             ocr_image_id = int(ocr_item['image_id'])
             ocr_image_w = float(ocr_item['image_w'])
@@ -101,6 +173,27 @@ with open(infile, "r") as tsv_in_file:
                 for ocr_text in ocr_texts:
                     text_feat.append(ocr_text.lower())
 
+                    box_sentence_vector = box_vectors[ocr_text]
+                    box_sentence_vector = np.asarray(box_sentence_vector, dtype = float)
+                    box_sentence_vector = np.reshape(box_sentence_vector, (1, embed_dim))
+                    box_sentence_vectors = np.append(
+                        box_sentence_vectors, box_sentence_vector, axis=0)
+
+
+                    ocr_text_tokens = text_processing.tokenize(ocr_text)
+                    to_append = 0.0
+                    for token in ocr_text_tokens:
+                        if token in gt_tokens:
+                            # print(token)
+                            # print(gt_tokens)
+                            to_append = 1.0
+                            break
+
+                    to_append = get_overlap_scores(
+                        ' '.join(ocr_text_tokens), ' '.join(gt_tokens))
+                    # print(' '.join(ocr_text_tokens) + " | " + ' '.join(gt_tokens) + ' | ' + str(to_append))
+                    att_sup.append(to_append)
+
                 im_with_ocr_bboxes += 1
 
                 if (ocr_item['num_boxes'] + item['num_boxes']) > max_boxes:
@@ -108,15 +201,29 @@ with open(infile, "r") as tsv_in_file:
 
                 image_bboxes = np.concatenate((image_bboxes, ocr_image_bboxes))
                 image_feat = np.concatenate((image_feat, ocr_image_feat))
+                ocr_boxes = np.ones((ocr_item['num_boxes'], 1), dtype=float)
+                image_bbox_source = np.concatenate((image_bbox_source, ocr_boxes), axis=0)
+
+            if image_id in test_imgids:
+                att_sup = None
 
             text_feat = np.asanyarray(text_feat)
+            if (image_feat.shape[0] < 10):
+                print(image_id)
+                print(item['num_boxes'])
+                print(ocr_item['num_boxes'])
             assert(text_feat.shape[0] == image_feat.shape[0])
-            if (text_feat.shape[0] == 0):
-                print("Empty text feat")
-                print(text_feat.shape)
-                print(text_feat)
-                print(image_bboxes.shape)
-            image_feat_and_boxes = {"image_bboxes": image_bboxes, "image_feat": image_feat, "image_text": text_feat}
+            assert(box_sentence_vectors.shape[0] == image_feat.shape[0])
+            assert(text_feat.shape[0] == image_bbox_source.shape[0])
+            image_feat_and_boxes = {"image_bboxes": image_bboxes,
+                                    "image_feat": image_feat,
+                                    "image_text": text_feat,
+                                    "image_bbox_source": image_bbox_source,
+                                    "image_text_vector": box_sentence_vectors}
+
+            if att_sup is not None:
+                assert(len(att_sup) == image_feat.shape[0])
+                att_sups[image_id] = att_sup
             # image_feat_and_boxes = {"image_bboxes": image_bboxes, "image_feat": image_feat}
 
             if image_id in train_imgids:
@@ -136,3 +243,6 @@ with open(infile, "r") as tsv_in_file:
 
 print("Images with OCR bbxoes " + str(im_with_ocr_bboxes))
 print("Max boxes " + str(max_boxes))
+
+with open('attention_sup.json', 'w') as f:
+    json.dump(att_sups, f)

@@ -71,6 +71,7 @@ class padded_faster_RCNN_with_bbox_text_feat_reader:
         image_boxes = image_feat_bbox.item().get('image_bboxes')
         tmp_image_feat = image_feat_bbox.item().get('image_feat')
         tmp_image_text_feat = image_feat_bbox.item().get('image_text')
+        image_text_vector = image_feat_bbox.item().get('image_text_vector')
 
         image_loc, image_dim = tmp_image_feat.shape
         tmp_image_feat_2 = np.zeros((self.max_loc, image_dim), dtype=np.float32)
@@ -79,7 +80,10 @@ class padded_faster_RCNN_with_bbox_text_feat_reader:
         tmp_image_box = np.zeros((self.max_loc, 4), dtype=np.int32)
         tmp_image_box[0:image_loc] = image_boxes
 
-        return (tmp_image_feat_2, image_loc, tmp_image_box, tmp_image_text_feat)
+        tmp_image_text_vector = np.zeros((self.max_loc, 300), dtype=float)
+        tmp_image_text_vector[0:image_loc] = image_text_vector
+
+        return (tmp_image_feat_2, image_loc, tmp_image_box, tmp_image_text_feat, tmp_image_text_vector)
 
 
 def parse_npz_img_feat(feat):
@@ -87,7 +91,7 @@ def parse_npz_img_feat(feat):
 
 
 def get_image_feat_reader(ndim, channel_first,image_feat,max_loc=None):
-    if ndim == 2 or ndim ==0:
+    if ndim == 2 or ndim == 0:
         if max_loc is None:
             return faster_RCNN_feat_reader()
         else:
@@ -97,7 +101,7 @@ def get_image_feat_reader(ndim, channel_first,image_feat,max_loc=None):
                 return padded_faster_RCNN_with_bbox_feat_reader(max_loc)
             else:
                 return padded_faster_RCNN_feat_reader(max_loc)
-    elif ndim ==3 and not channel_first:
+    elif ndim == 3 and not channel_first:
         return dim_3_reader()
     elif ndim == 4 and channel_first:
         return CHW_feat_reader()
@@ -115,6 +119,7 @@ def compute_answer_scores(answers, num_of_answers, unk_idx):
         else:
             answer_count = answers.count(answer)
             scores[answer] = min(np.float32(answer_count)*0.3, 1)
+            # scores[answer] = np.float32(answer_count)/10
     return scores
 
 
@@ -177,14 +182,14 @@ class vqa_dataset(Dataset):
             print('Loading model and config ...')
 
         # load one feature map to peek its size
-        self.image_feat_readers =[]
+        self.image_feat_readers = []
         for image_dir in self.image_feat_directories:
             image_file_name = os.path.basename(self.imdb[self.first_element_idx]['feature_path'])
             image_feat_path = os.path.join(image_dir, image_file_name)
             feats = np.load(image_feat_path)
             self.image_feat_readers.append(get_image_feat_reader(feats.ndim, self.image_depth_first,feats ,self.image_max_loc))
 
-        self.fastRead=False
+        self.fastRead = False
         self.testMode = False
         if data_params['test_mode']:
             self.testMode = True
@@ -219,19 +224,21 @@ class vqa_dataset(Dataset):
         image_boxes = None
         image_loc = None
         image_text_feat = None
+        image_text_vector = None
 
         if isinstance(image_feats[0], tuple):
-            image_loc =image_feats[0][1]
+            image_loc = image_feats[0][1]
             image_feats_return = [image_feats[0][0]] + image_feats[1:]
-            if len(image_feats[0]) == 3:
+            if len(image_feats[0]) >= 3:
                 image_boxes = image_feats[0][2]
-            if len(image_feats[0]) == 4:
+            if len(image_feats[0]) >= 4:
                 image_text_feat = image_feats[0][3]
+            if len(image_feats[0]) >= 5:
+                image_text_vector = image_feats[0][4]
         else:
             image_feats_return = image_feats
 
-
-        return image_feats_return, image_boxes, image_loc, image_text_feat
+        return image_feats_return, image_boxes, image_loc, image_text_feat, image_text_vector
 
 
     def __getitem__(self, idx):
@@ -245,18 +252,23 @@ class vqa_dataset(Dataset):
         input_seq[:read_len] = question_inds[:read_len]
 
         image_file_name = self.imdb[idx]['feature_path']
-        image_feats, image_boxes, image_loc, image_text_feat = self._get_image_features_(image_file_name)
+        image_feats, image_boxes, image_loc, image_text_feat, image_text_vector = self._get_image_features_(image_file_name)
 
+        # print(image_file_name)
+        unk_mapped_tokens = []
         if image_text_feat is not None:
             for i, text in enumerate(image_text_feat):
                 feat_tokens = text_processing.tokenize(text)
                 feat_inds = [self.vocab_dict.word2idx(w) for w in feat_tokens]
+                for i, ind in enumerate(feat_inds):
+                    if feat_inds[i] == self.vocab_dict.UNK_idx:
+                        unk_mapped_tokens.append(feat_tokens[i])
                 feat_seq_length = len(feat_inds)
                 read_len = min(feat_seq_length, self.T_encoder)
                 feat_seq[i, :read_len] = feat_inds[:read_len]
-        else:
-            print("Empty image text feat")
-            print(image_file_name)
+
+        # print("Unk Mapped tokens")
+        # print(unk_mapped_tokens)
 
         answer = None
         valid_answers_idx = np.zeros((10),np.int32)
@@ -291,16 +303,30 @@ class vqa_dataset(Dataset):
 
         if image_text_feat is not None:
             sample['image_text_feat'] = feat_seq
+        else:
+            print("None image feat " + image_file_name)
+
+        if image_text_vector is not None:
+            image_text_vector = image_text_vector.astype(np.float32)
+            sample['image_text_vector'] = image_text_vector
+        else:
+            print("None image text feat " + image_file_name)
 
         for im_idx, image_feat in enumerate(image_feats):
-            if im_idx ==0:
-                sample['image_feat_batch']=image_feat
+            if im_idx == 0:
+                sample['image_feat_batch'] = image_feat
             else:
                 feat_key = "image_feat_batch_%s" % str(im_idx)
                 sample[feat_key] = image_feat
 
         if image_loc is not None:
             sample['image_dim'] = image_loc
+
+        if self.load_answer and 'att_sup' in iminfo:
+            sample['att_sup'] = iminfo['att_sup']
+
+        if self.load_answer and 'ans_sup' in iminfo:
+            sample['ans_sup'] = iminfo['ans_sup'].transpose()
 
         if self.load_answer:
             sample['answer_label_batch'] = answer_idx

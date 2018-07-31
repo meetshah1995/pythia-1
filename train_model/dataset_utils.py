@@ -52,16 +52,20 @@ def prepare_data_set(imdb_file_label, image_dir_label,**data_config):
 
 
 def prepare_train_data_set(**data_config):
-    return prepare_data_set('imdb_file_train', 'image_feat_train', **data_config)
+    return prepare_data_set('imdb_file_train',
+                            'image_feat_train',
+                            **data_config)
 
 
 def prepare_eval_data_set(enforce_slow_reader=False,**data_config):
 
     if enforce_slow_reader:
-        data_config['image_fast_reader']= False
+        data_config['image_fast_reader'] = False
 
     return prepare_data_set('imdb_file_val', 'image_feat_val', **data_config)
 
+
 def prepare_test_data_set(**data_config):
     data_config['image_fast_reader'] = False
+    data_config['batch_size'] = 64
     return prepare_data_set('imdb_file_test', 'image_feat_test', **data_config)

@@ -81,7 +81,7 @@ def print_eval(prepare_data_fun, out_label):
     model = build_model(cfg, data_set_test)
     model.load_state_dict(torch.load(model_file)['state_dict'])
 
-    question_ids, soft_max_result = run_model(model, data_reader_test, ans_dic.UNK_idx)
+    question_ids, soft_max_result, _, _ = run_model(model, data_reader_test, ans_dic.UNK_idx)
     print_result(question_ids, soft_max_result, ans_dic, out_file, json_only=False, pkl_res_file=pkl_res_file, test=out_label)
 
 
@@ -136,13 +136,15 @@ if __name__ == '__main__':
               {'params': model.classifier.parameters()},
               {'params': model.image_feature_encode_list.parameters(),
               'lr': cfg.optimizer.par.lr * 0.1}]
-    if model.image_text_feature_encode_list is not None:
-        params += [{'params': model.image_text_feature_encode_list.parameters()}]
+    # if model.image_text_feature_encode_list is not None:
+    #     params += [{'params': model.image_text_feature_encode_list.parameters()}]
     if model.image_text_feat_embedding_models_list is not None:
-        params += [{'params': model.image_text_feat_embedding_models_list.parameters()}]
+        params += [{'params': model.image_text_feat_embedding_models_list.parameters(),
+                     'lr': cfg.model.itf_lr}]
 
     my_optim = getattr(optim, cfg.optimizer.method)(params, **cfg.optimizer.par)
     print(cfg.training_parameters)
+    print("Learning rate  " + str(cfg.optimizer.par.lr))
 
     i_epoch = 0
     i_iter = 0
@@ -162,6 +164,15 @@ if __name__ == '__main__':
     scheduler = get_optim_scheduler(my_optim)
 
     my_loss = get_loss_criterion(cfg.loss)
+    if cfg.att_loss:
+        my_att_loss = get_loss_criterion(cfg.att_loss)
+    else:
+        my_att_loss = my_loss
+
+    if cfg.ans_loss:
+        my_ans_loss = get_loss_criterion(cfg.ans_loss)
+    else:
+        my_ans_loss = my_loss
 
     data_set_val = prepare_eval_data_set(**cfg['data'], **cfg['model'])
 
@@ -184,14 +195,19 @@ if __name__ == '__main__':
 
     print(str(total*4.0/(10**9)) + " GB")
 
+    use_attention_supervision = cfg.model.use_attention_supervision
+    use_answer_supervision = cfg.model.use_answer_supervision
     one_stage_train(my_model, data_reader_trn, my_optim, my_loss, data_reader_eval=data_reader_val,
                     snapshot_dir=snapshot_dir, log_dir=boards_dir, start_epoch=i_epoch, i_iter=i_iter,
-                    scheduler=scheduler)
-
-    del data_reader_trn, data_reader_val, my_loss, my_optim
-    gc.collect()
+                    scheduler=scheduler, use_attention_supervision=use_attention_supervision,
+                    use_answer_supervision=use_answer_supervision,
+                    att_loss_criterion=my_att_loss,
+                    ans_loss_criterion=my_ans_loss,
+                    att_loss_weight=cfg.model.att_loss_weight,
+                    ans_loss_weight=cfg.model.ans_loss_weight)
 
     print("After training")
+    total = 0
     for obj in gc.get_objects():
         try:
             if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
@@ -204,9 +220,9 @@ if __name__ == '__main__':
 
 
     print("BEGIN PREDICTING ON TEST/VAL set...")
-    gc.collect()
 
     if 'predict' in cfg.run:
+        print("Running on test")
         print_eval(prepare_test_data_set, "test")
     if cfg.run == 'train+val':
         print_eval(prepare_eval_data_set, "val")

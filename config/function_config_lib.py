@@ -53,7 +53,7 @@ att_que_embed = AttrDict()
 att_que_embed.embedding_dim = 300
 att_que_embed.LSTM_hidden_size = 1024
 att_que_embed.LSTM_layer = 1
-att_que_embed.dropout = 0
+att_que_embed.dropout = 0.0
 att_que_embed.conv1_out = 512
 att_que_embed.conv2_out = 2
 att_que_embed.kernel_size = 1
@@ -69,7 +69,7 @@ QUESTION_MODEL={
 # ---------------------------------------------------------------------------- #
 non_linear_elmt_multiply = AttrDict()
 non_linear_elmt_multiply.hidden_size = 5000
-non_linear_elmt_multiply.dropout = 0
+non_linear_elmt_multiply.dropout = 0.0
 
 MFH = AttrDict()
 
@@ -108,7 +108,7 @@ logit_classifier.img_hidden_dim = 5000
 # ----------------------------------------------------------------------------- #
 weight_norm_classifier = AttrDict()
 weight_norm_classifier.hidden_dim = 5000
-weight_norm_classifier.dropout = 0.1
+weight_norm_classifier.dropout = 0.0
 
 
 # ----------------------------------------------------------------------------- #

@@ -112,6 +112,8 @@ class top_down_attention(nn.Module):
         joint_feature = self.modal_combine(image_feat, question_embedding)      ## N x K x joint_dim
         raw_attention = self.transform(joint_feature)                       ## N x K x n_att
 
+
+
         if self.normalization.lower() == 'softmax':
             attention = F.softmax(raw_attention, dim=1)
             if image_locs is not None:

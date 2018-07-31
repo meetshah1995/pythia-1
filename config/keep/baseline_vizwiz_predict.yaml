@@ -2,20 +2,20 @@ run: predict
 data:
   data_root_dir: /private/home/nvivek/VQA/training_data/
   image_feat_train:
-  - rcnn_adaptive_vizwiz/vizwiz_ocr_text,resnet_res5c_vizwiz/vizwiz/resnet152
+  - rcnn_adaptive_vizwiz/vizwiz_ocr_att_sup_soft,resnet_res5c_vizwiz/vizwiz/resnet152
   image_feat_val:
-  - rcnn_adaptive_vizwiz/vizwiz_ocr_text,resnet_res5c_vizwiz/vizwiz/resnet152
+  - rcnn_adaptive_vizwiz/vizwiz_ocr_att_sup_soft,resnet_res5c_vizwiz/vizwiz/resnet152
   image_feat_test:
-  - rcnn_adaptive_vizwiz/vizwiz_ocr_text,resnet_res5c_vizwiz/vizwiz/resnet152
+  - rcnn_adaptive_vizwiz/vizwiz_ocr_att_sup_soft,resnet_res5c_vizwiz/vizwiz/resnet152
   image_max_loc: 137
   imdb_file_train:
-  - imdb/imdb_vizwiz_train_all_answers.npy
+  - imdb/imdb_vizwiz_train_large_att_uns_una_sup.npy
   imdb_file_val:
-  - imdb/imdb_vizwiz_val_all_answers.npy
+  - imdb/imdb_vizwiz_val_large_att_uns_una_sup.npy
   imdb_file_test:
-  - imdb/imdb_vizwiz_test_all_answers.npy
+  - imdb/imdb_vizwiz_test_large_att_uns_sup.npy
   vocab_question_file: vocabulary_100k.txt
-  vocab_answer_file: "answers_vizwiz_large.txt"
+  vocab_answer_file: "answers_vizwiz_7k.txt"
   image_fast_reader: False
   batch_size: 128
 optimizer:
@@ -24,6 +24,11 @@ optimizer:
     lr: 0.005
 model:
   use_image_text_feat: True
+  use_attention_supervision: True
+  use_answer_supervision: True
+  att_loss_weight: 0.4
+  ans_loss_weight: 0.1
+  itf_lr: 0.05
   question_embedding:
   - method: att_que_embed
     par:
@@ -34,17 +39,15 @@ model:
   - method: default_image
     par: {}
   image_text_feat_encoding:
-  - method: image_text_feat_encoding
+  - method: default_image
     par: {}
 training_parameters:
     report_interval : 100
     clip_norm_mode: all
     max_grad_l2_norm: 0.25
     lr_steps:
-    - 6000
-    - 9000
-    - 16000
+    - 18000
     lr_ratio: 0.01
     wu_factor: 0.2
     wu_iters: 1000
-    max_iter: 18000
+    max_iter: 24000

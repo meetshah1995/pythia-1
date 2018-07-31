@@ -32,9 +32,9 @@ class ImageTextFeatureEmbedding(nn.Module):
         self.out_dim = kwargs['embedding_dim']
         self.num_vocab = num_vocab
         self.embedding = nn.Embedding(num_vocab, self.out_dim)
-
-        if 'embedding_init' in kwargs and kwargs['embedding_init'] is not None:
-            self.embedding.weight.data.copy_(torch.from_numpy(kwargs['embedding_init']))
+        # self.embedding = None
+        # if 'embedding_init' in kwargs and kwargs['embedding_init'] is not None:
+        #     self.embedding.weight.data.copy_(torch.from_numpy(kwargs['embedding_init']))
 
     def forward(self, input_text):
         input_shape = input_text.size()
@@ -44,7 +44,7 @@ class ImageTextFeatureEmbedding(nn.Module):
         input_text = input_text.view(-1, word_len)
         embed_txt = self.embedding(input_text)
         embed_txt = embed_txt.view(*input_shape, -1)
-        embed_txt = embed_txt.sum(2)
+        embed_txt = embed_txt.mean(2)
         return embed_txt
 
 class FinetuneFasterRcnnFpnFc7(nn.Module):

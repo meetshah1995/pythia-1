@@ -126,14 +126,25 @@ def filter_answers(answers_dset, min_occurence):
     """This will change the answer to preprocessed version
     """
     occurence = {}
-    answer_list= []
+    answer_list = []
     for ans_entry in answers_dset:
-        answers = ans_entry['answers']
+        answers_json = ans_entry['answers']
+        answers = []
+        for answer in answers_json:
+            answers.append(answer['answer'])
+
         gtruth = ans_entry['multiple_choice_answer']
-        gtruth = preprocess_answer(gtruth)
-        if gtruth not in occurence:
-            occurence[gtruth] = set()
-        occurence[gtruth].add(ans_entry['question_id'])
+        answers = answers + [gtruth]
+        for answer in answers:
+            print(answer)
+            answer = preprocess_answer(answer)
+            if answer not in occurence:
+                occurence[answer] = set()
+            occurence[answer].add(ans_entry['question_id'])
+        # gtruth = preprocess_answer(gtruth)
+        # if gtruth not in occurence:
+        #     occurence[gtruth] = set()
+        # occurence[gtruth].add(ans_entry['question_id'])
     for answer in occurence.keys():
         if len(occurence[answer]) >= min_occurence:
             answer_list.append(answer)
@@ -157,7 +168,7 @@ if __name__ == '__main__':
     out_dir = args.out_dir
     min_freq = args.min_freq
 
-    answer_file_name = 'answers_vizwiz_large.txt'
+    answer_file_name = 'answers_vizwiz_all.txt'
     os.makedirs(out_dir, exist_ok=True)
 
     train_answers = json.load(open(train_annotation_file, 'r'))['annotations']

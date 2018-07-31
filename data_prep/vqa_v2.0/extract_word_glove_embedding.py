@@ -46,5 +46,5 @@ if __name__ == '__main__':
 
     weights = subset_weights(glove_file, vocabulary_file)
     print(weights.shape)
-    emb_file = os.path.join(out_dir,emb_file_name)
+    emb_file = os.path.join(out_dir, emb_file_name)
     np.save(emb_file, weights)

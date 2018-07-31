@@ -44,11 +44,8 @@ if __name__ == '__main__':
     myModel = build_model(config, data_set_test)
     myModel.load_state_dict(torch.load(model_file)['state_dict'])
 
-    question_ids, soft_max_result = run_model(myModel, data_reader_test, ans_dic.UNK_idx)
+    question_ids, soft_max_result, _, _ = run_model(myModel, data_reader_test, ans_dic.UNK_idx)
 
     pkl_res_file = args.out_prefix + ".pkl" if not args.json_only else None
 
     print_result(question_ids, soft_max_result, ans_dic, out_file, args.json_only, pkl_res_file)
-
-
-
