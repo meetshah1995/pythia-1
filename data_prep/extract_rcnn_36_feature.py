@@ -130,7 +130,7 @@ with open(infile, "r") as tsv_in_file:
                 to_append = get_overlap_scores(
                     ' '.join(text_tokens), ' '.join(gt_tokens))
                 # print(' '.join(text_tokens) + " | " + ' '.join(gt_tokens) + ' | ' + str(to_append))
-                att_sup.append(to_append)
+                att_sup.append(0.0)
                 box_sentence_vector = box_vectors[text]
                 box_sentence_vector = np.asarray(box_sentence_vector, dtype = float)
                 box_sentence_vector = np.reshape(box_sentence_vector, (1, embed_dim))
@@ -171,7 +171,7 @@ with open(infile, "r") as tsv_in_file:
                     dtype=np.float32).reshape((ocr_item['num_boxes'], -1))
 
                 for ocr_text in ocr_texts:
-                    text_feat.append(ocr_text.lower())
+                    # text_feat.append(ocr_text.lower())
 
                     box_sentence_vector = box_vectors[ocr_text]
                     box_sentence_vector = np.asarray(box_sentence_vector, dtype = float)
@@ -181,6 +181,7 @@ with open(infile, "r") as tsv_in_file:
 
 
                     ocr_text_tokens = text_processing.tokenize(ocr_text)
+                    text_feat.append(' '.join(ocr_text_tokens))
                     to_append = 0.0
                     for token in ocr_text_tokens:
                         if token in gt_tokens:
@@ -208,10 +209,10 @@ with open(infile, "r") as tsv_in_file:
                 att_sup = None
 
             text_feat = np.asanyarray(text_feat)
-            if (image_feat.shape[0] < 10):
-                print(image_id)
-                print(item['num_boxes'])
-                print(ocr_item['num_boxes'])
+            # if (image_feat.shape[0] < 10):
+            #     print(image_id)
+            #     print(item['num_boxes'])
+            #     print(ocr_item['num_boxes'])
             assert(text_feat.shape[0] == image_feat.shape[0])
             assert(box_sentence_vectors.shape[0] == image_feat.shape[0])
             assert(text_feat.shape[0] == image_bbox_source.shape[0])

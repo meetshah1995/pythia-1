@@ -111,9 +111,11 @@ def get_image_feat_reader(ndim, channel_first,image_feat,max_loc=None):
         raise TypeError("unkown image feature format")
 
 
-def compute_answer_scores(answers, num_of_answers, unk_idx):
+def compute_answer_scores(answers, num_of_answers, unk_idx, copy_idx, copy_score):
     scores = np.zeros((num_of_answers), np.float32)
     for answer in set(answers):
+        if answer == copy_idx:
+            scores[answer] = copy_score
         if answer == unk_idx:
             scores[answer] = 0
         else:
@@ -271,7 +273,7 @@ class vqa_dataset(Dataset):
         # print(unk_mapped_tokens)
 
         answer = None
-        valid_answers_idx = np.zeros((10),np.int32)
+        valid_answers_idx = np.zeros((11), np.int32)
         valid_answers_idx.fill(-1)
         answer_scores = np.zeros(self.answer_dict.num_vocab, np.float32)
         if self.load_answer:
@@ -282,7 +284,12 @@ class vqa_dataset(Dataset):
                 answer = np.random.choice(valid_answers)
                 valid_answers_idx[:len(valid_answers)] = [self.answer_dict.word2idx(ans) for ans in valid_answers]
                 ans_idx = [self.answer_dict.word2idx(ans) for ans in valid_answers]
-                answer_scores = compute_answer_scores(ans_idx, self.answer_dict.num_vocab, self.answer_dict.UNK_idx)
+                answer_scores = compute_answer_scores(
+                    ans_idx,
+                    self.answer_dict.num_vocab,
+                    self.answer_dict.UNK_idx,
+                    self.answer_dict.copy_idx,
+                    iminfo['copy_score'])
 
             answer_idx = self.answer_dict.word2idx(answer)
 
@@ -340,7 +347,7 @@ class vqa_dataset(Dataset):
         if image_boxes is not None:
             sample['image_boxes'] = image_boxes
 
-        ##used for error analysis and debug, output question_id, image_id, question, answer,valid_answers,
+        # used for error analysis and debug, output question_id, image_id, question, answer,valid_answers,
         if self.verbose:
             sample['verbose_info'] = iminfo
 

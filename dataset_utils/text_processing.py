@@ -20,6 +20,7 @@ class VocabDict:
         self.word2idx_dict = {w:n_w for n_w, w in enumerate(self.word_list)}
         self.num_vocab = len(self.word_list)
         self.UNK_idx = self.word2idx_dict['<unk>'] if '<unk>' in self.word2idx_dict else None
+        self.copy_idx = self.word2idx_dict['<copy>'] if '<copy>' in self.word2idx_dict else None
 
     def idx2word(self, n_w):
         return self.word_list[n_w]

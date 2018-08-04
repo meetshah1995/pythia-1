@@ -89,7 +89,7 @@ def one_stage_train(myModel, data_reader_trn, myOptimizer,
             if use_attention_supervision:
                 att_sup = batch['att_sup']
                 att_sup_variable = att_sup.type(torch.FloatTensor).to(device)
-                F.normalize(att_sup_variable, p=1, dim=1)
+                # F.normalize(att_sup_variable, p=1, dim=1)
                 att_loss = att_loss_criterion(it_att[0], att_sup_variable)
                 # total_loss = sum([total_loss, att_loss])
 
@@ -286,7 +286,10 @@ def one_stage_run_model(batch, myModel, add_graph=False, log_dir=None):
     i = 1
     image_feat_key = "image_feat_batch_%s"
     while image_feat_key % str(i) in batch:
-        tmp_image_variable = batch[image_feat_key % str(i)].to(device)
+        image_feat = batch[image_feat_key % str(i)]
+        if type(image_feat) is list:
+            image_feat = image_feat[0]
+        tmp_image_variable = image_feat.to(device)
         image_feat_variables.append(tmp_image_variable)
         i += 1
 

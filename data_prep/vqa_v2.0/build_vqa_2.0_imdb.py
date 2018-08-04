@@ -5,6 +5,8 @@ from dataset_utils import text_processing
 import argparse
 from dataset_utils.create_imdb_header import create_header
 
+base_dir = '/private/home/nvivek/VQA/training_data/rcnn_adaptive_vizwiz/vizwiz_ocr_att_sup_soft_copy'
+
 with open('attention_sup.json', 'r') as f:
     att_sups = json.load(f)
 
@@ -50,6 +52,7 @@ def build_imdb(image_set, valid_answer_set, coco_set_name =None, annotation_set_
 
     unk_ans_count = 0
     uns_count = 0
+    copy_count = 0
     for n_q, q in enumerate(questions):
         if (n_q+1) % 10000 == 0:
             print('processing %d / %d' % (n_q+1, len(questions)))
@@ -57,6 +60,10 @@ def build_imdb(image_set, valid_answer_set, coco_set_name =None, annotation_set_
         question_id = q['question_id']
         image_name = image_name_template % image_id
         feature_path = image_name + '.npy'
+        feat = np.load(os.path.join(base_dir, feature_path))
+        image_text = list(feat.item().get('image_text'))
+        image_box_source = list(feat.item().get('image_bbox_source'))
+
         question_str = q['question']
         question_tokens = text_processing.tokenize(question_str)
 
@@ -69,6 +76,7 @@ def build_imdb(image_set, valid_answer_set, coco_set_name =None, annotation_set_
 
         # load answers
         if load_answer:
+            copy_score = 0.0
             ann = qid2ann_dict[question_id]
             all_answers, valid_answers = extract_answers(ann['answers'], valid_answer_set)
             if len(valid_answers) == 0:
@@ -76,6 +84,29 @@ def build_imdb(image_set, valid_answer_set, coco_set_name =None, annotation_set_
                 unk_ans_count += 1
             iminfo['all_answers'] = all_answers
             iminfo['valid_answers'] = valid_answers
+
+            for i, text in enumerate(image_text):
+                if image_box_source[i] == 0:
+                    continue
+                score = 0.0
+                if text in valid_answers:
+                    count = valid_answers.count(text)
+                    if count == 1:
+                        score = 1.0/3.0
+                    elif count == 2:
+                        score = 2.0/3.0
+                    else:
+                        score = 1.0
+                if score > copy_score:
+                    copy_score = score
+
+            valid_answers += ['<copy>']
+            iminfo['copy_score'] = copy_score
+
+            if copy_score > 0.0:
+                copy_count += 1
+
+
             has_answer = True
             att_sup = att_sups[str(image_id)]
             att_sup += [0.0]*(137-len(att_sup))
@@ -98,6 +129,7 @@ def build_imdb(image_set, valid_answer_set, coco_set_name =None, annotation_set_
         imdb[n_q+1] = iminfo
     print('total %d out of %d answers are <unk>' % (unk_ans_count, len(questions)))
     print('total %d out of %d answers are unanswerable' % (uns_count, len(questions)))
+    print('total %d out of %d answers are copyable' % (copy_count, len(questions)))
     header = create_header("vqa",has_answer= has_answer,has_gt_layout=has_gt_layout)
     imdb[0] = header
     return imdb
@@ -123,6 +155,6 @@ if __name__ == '__main__':
 
     imdb_dir = os.path.join(out_dir, 'imdb')
     os.makedirs(imdb_dir, exist_ok=True)
-    np.save(os.path.join(imdb_dir, 'imdb_vizwiz_train_large_att_uns_una_sup.npy'), np.array(imdb_vizwiz_train))
-    np.save(os.path.join(imdb_dir, 'imdb_vizwiz_val_large_att_uns_una_sup.npy'), np.array(imdb_vizwiz_val))
-    np.save(os.path.join(imdb_dir, 'imdb_vizwiz_test_large_att_uns_una_sup.npy'), np.array(imdb_vizwiz_test))
+    np.save(os.path.join(imdb_dir, 'imdb_vizwiz_train_large_ocr_only_att_uns_una_sup_ocr_only_copy.npy'), np.array(imdb_vizwiz_train))
+    np.save(os.path.join(imdb_dir, 'imdb_vizwiz_val_large_ocr_only_att_uns_una_sup_ocr_only_copy.npy'), np.array(imdb_vizwiz_val))
+    np.save(os.path.join(imdb_dir, 'imdb_vizwiz_test_large_ocr_only_att_uns_una_sup_ocr_only_copy.npy'), np.array(imdb_vizwiz_test))
