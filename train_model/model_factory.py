@@ -130,7 +130,7 @@ def prepare_model(num_vocab, num_choices, **model_config):
     if 'use_answer_supervision' in model_config.keys():
         ans_classifier = build_classifier(model_config['classifier']['method'],
                                       model_config['classifier']['par'],
-                                      in_dim=joint_embedding_dim, out_dim=3)
+                                      in_dim=joint_embedding_dim, out_dim=4)
 
     print("Building final model")
     print(question_embedding_models)

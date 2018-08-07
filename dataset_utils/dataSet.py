@@ -68,7 +68,7 @@ class padded_faster_RCNN_with_bbox_text_feat_reader:
     def read(self, image_feat_path):
         image_feat_bbox = np.load(image_feat_path)
 
-        image_boxes = image_feat_bbox.item().get('image_bboxes')
+        # image_boxes = image_feat_bbox.item().get('image_bboxes')
         tmp_image_feat = image_feat_bbox.item().get('image_feat')
         tmp_image_text_feat = image_feat_bbox.item().get('image_text')
         image_text_vector = image_feat_bbox.item().get('image_text_vector')
@@ -78,8 +78,9 @@ class padded_faster_RCNN_with_bbox_text_feat_reader:
         tmp_image_feat_2[0:image_loc, ] = tmp_image_feat
 
         tmp_image_box = np.zeros((self.max_loc, 4), dtype=np.int32)
-        tmp_image_box[0:image_loc] = image_boxes
+        # tmp_image_box[0:image_loc] = image_boxes
 
+        image_loc = tmp_image_text_feat.shape[0]
         tmp_image_text_vector = np.zeros((self.max_loc, 300), dtype=float)
         tmp_image_text_vector[0:image_loc] = image_text_vector
 
@@ -116,7 +117,7 @@ def compute_answer_scores(answers, num_of_answers, unk_idx, copy_idx, copy_score
     for answer in set(answers):
         if answer == copy_idx:
             scores[answer] = copy_score
-        if answer == unk_idx:
+        elif answer == unk_idx:
             scores[answer] = 0
         else:
             answer_count = answers.count(answer)
@@ -284,12 +285,15 @@ class vqa_dataset(Dataset):
                 answer = np.random.choice(valid_answers)
                 valid_answers_idx[:len(valid_answers)] = [self.answer_dict.word2idx(ans) for ans in valid_answers]
                 ans_idx = [self.answer_dict.word2idx(ans) for ans in valid_answers]
+                copy_score = 0.0
+                if 'copy_score' in iminfo.keys():
+                    copy_score = iminfo['copy_score']
                 answer_scores = compute_answer_scores(
                     ans_idx,
                     self.answer_dict.num_vocab,
                     self.answer_dict.UNK_idx,
                     self.answer_dict.copy_idx,
-                    iminfo['copy_score'])
+                    copy_score)
 
             answer_idx = self.answer_dict.word2idx(answer)
 

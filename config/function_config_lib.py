@@ -32,6 +32,7 @@ finetune_faster_rcnn_fpn_fc7.weights_file = ""
 finetune_faster_rcnn_fpn_fc7.bias_file = ""
 
 default_feature = AttrDict()
+lstm_encoding = AttrDict()
 
 image_text_feat_encoding = AttrDict()
 image_text_feat_encoding.embedding_dim = 300
@@ -40,6 +41,7 @@ image_text_feat_encoding.embedding_init_file = "glove.6B.300d.txt.npy"
 IMAGE_FEATURE_MODEL = {
     "finetune_faster_rcnn_fpn_fc7": finetune_faster_rcnn_fpn_fc7,
     "default_image": default_feature,
+    "lstm_encoding": lstm_encoding,
     "image_text_feat_encoding": image_text_feat_encoding
 }
 
@@ -136,6 +138,7 @@ MODEL_TYPE_PAR_DICT = {
     'logit_classifier' : logit_classifier,
     'Adamax': adamax_opt,
     'default_image': IMAGE_FEATURE_MODEL['default_image'],
+    'lstm_encoding': IMAGE_FEATURE_MODEL['lstm_encoding'],
     'finetune_faster_rcnn_fpn_fc7': IMAGE_FEATURE_MODEL['finetune_faster_rcnn_fpn_fc7'],
     'image_text_feat_encoding': IMAGE_FEATURE_MODEL['image_text_feat_encoding'],
     'weight_norm_classifier': weight_norm_classifier,

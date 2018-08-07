@@ -130,7 +130,7 @@ with open(infile, "r") as tsv_in_file:
                 to_append = get_overlap_scores(
                     ' '.join(text_tokens), ' '.join(gt_tokens))
                 # print(' '.join(text_tokens) + " | " + ' '.join(gt_tokens) + ' | ' + str(to_append))
-                att_sup.append(0.0)
+                att_sup.append(to_append)
                 box_sentence_vector = box_vectors[text]
                 box_sentence_vector = np.asarray(box_sentence_vector, dtype = float)
                 box_sentence_vector = np.reshape(box_sentence_vector, (1, embed_dim))

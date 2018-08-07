@@ -9,6 +9,8 @@ from config.config import cfg
 def build_image_feature_encoding(method, par, in_dim, num_vocab=None):
     if method == "default_image":
         return DefaultImageFeature(in_dim)
+    elif method == "lstm_encoding":
+        return LSTMFeatureEmbedding(in_dim)
     elif method == "image_text_feat_encoding":
         return ImageTextFeatureEmbedding(num_vocab, **par)
     elif method == "finetune_faster_rcnn_fpn_fc7":
@@ -46,6 +48,19 @@ class ImageTextFeatureEmbedding(nn.Module):
         embed_txt = embed_txt.view(*input_shape, -1)
         embed_txt = embed_txt.mean(2)
         return embed_txt
+
+class LSTMFeatureEmbedding(nn.Module):
+    def __init__(self, in_dim):
+        super(LSTMFeatureEmbedding, self).__init__()
+        self.in_dim = in_dim
+        self.out_dim = in_dim
+        self.lstm = nn.LSTM(300, hidden_size=300, num_layers=1, batch_first=True)
+        self.dropout = nn.Dropout(0.0)
+
+    def forward(self, input_text):
+        out, hidden_state = self.lstm(input_text)
+        return out
+
 
 class FinetuneFasterRcnnFpnFc7(nn.Module):
     def __init__(self, in_dim, weights_file, bias_file):

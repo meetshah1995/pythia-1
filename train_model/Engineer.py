@@ -91,6 +91,7 @@ def one_stage_train(myModel, data_reader_trn, myOptimizer,
                 att_sup_variable = att_sup.type(torch.FloatTensor).to(device)
                 # F.normalize(att_sup_variable, p=1, dim=1)
                 att_loss = att_loss_criterion(it_att[0], att_sup_variable)
+                # att_loss_2 = att_loss_criterion(i_att[0], att_sup_variable)
                 # total_loss = sum([total_loss, att_loss])
 
             if use_answer_supervision:
