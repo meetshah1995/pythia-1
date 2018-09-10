@@ -176,18 +176,18 @@ def get_detections_from_im(cfg, model, im, image_id, feat_blob_name,
             keep_boxes = np.argsort(max_conf)[::-1][:MAX_BOXES]
         objects = np.argmax(cls_prob[keep_boxes], axis=1)
 
-
-    return box_features[keep_boxes]
-
-    #return {
-    #    "image_id": image_id,
-    #    "image_h": np.size(im, 0),
-    #    "image_w": np.size(im, 1),
-    #    'num_boxes': len(keep_boxes),
-    #    'boxes': base64.b64encode(cls_boxes[keep_boxes]),
-    #    'features': base64.b64encode(box_features[keep_boxes]),
-    #    'object': base64.b64encode(objects)
-    #}
+        cls_scores = np.array([x[objects[i]] for i, x in 
+                                             enumerate(cls_prob[keep_boxes])])
+    return {
+        "image_id": image_id,
+        "image_h": np.size(im, 0),
+        "image_w": np.size(im, 1),
+        'num_boxes': len(keep_boxes),
+        'boxes': base64.b64encode(cls_boxes[keep_boxes]),
+        'features': base64.b64encode(box_features[keep_boxes]),
+        'cls_scores': base64.b64encode(box_features[keep_boxes]),
+        'object': base64.b64encode(objects)
+    }
 
 
 def extract_bboxes(bottom_up_csv_file):
