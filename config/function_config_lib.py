@@ -39,10 +39,19 @@ finetune_faster_rcnn_fpn_fc7 = AttrDict()
 finetune_faster_rcnn_fpn_fc7.weights_file = ""
 finetune_faster_rcnn_fpn_fc7.bias_file = ""
 
+
+gcn_finetune_faster_rcnn_fpn_fc7 = AttrDict()
+gcn_finetune_faster_rcnn_fpn_fc7.weights_file = ""
+gcn_finetune_faster_rcnn_fpn_fc7.bias_file = ""
+gcn_finetune_faster_rcnn_fpn_fc7.relations = ""
+gcn_finetune_faster_rcnn_fpn_fc7.n_feats = ""
+
+
 default_feature = AttrDict()
 
 IMAGE_FEATURE_MODEL = {
     "finetune_faster_rcnn_fpn_fc7": finetune_faster_rcnn_fpn_fc7,
+    "gcn_finetune_faster_rcnn_fpn_fc7": gcn_finetune_faster_rcnn_fpn_fc7,
     "default": default_feature
 }
 
@@ -143,6 +152,8 @@ MODEL_TYPE_PAR_DICT = {
     'default_image': IMAGE_FEATURE_MODEL['default'],
     'finetune_faster_rcnn_fpn_fc7':
         IMAGE_FEATURE_MODEL['finetune_faster_rcnn_fpn_fc7'],
+    'gcn_finetune_faster_rcnn_fpn_fc7':
+        IMAGE_FEATURE_MODEL['gcn_finetune_faster_rcnn_fpn_fc7'],
     'weight_norm_classifier': weight_norm_classifier,
     'linear_classifier': linear_classifier
 }
