@@ -27,6 +27,7 @@ import pickle
 '''
 
 
+
 class image_embedding(nn.Module):
     def __init__(self, image_attention_model):
         super(image_embedding, self).__init__()

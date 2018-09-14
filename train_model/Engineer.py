@@ -234,6 +234,28 @@ def one_stage_run_model(batch, my_model, eval_mode, add_graph=False, log_dir=Non
         if use_cuda:
             image_dim_variable = image_dim_variable.cuda()
 
+    image_h, image_w = None, None
+    if 'image_h' in batch:
+        image_h = Variable(batch['image_h'],
+                           requires_grad=False,
+                           volatile=False)
+        if use_cuda:
+            image_h = image_h.cuda()
+
+    if 'image_w' in batch:
+        image_w = Variable(batch['image_w'],
+                           requires_grad=False,
+                           volatile=False)
+        if use_cuda:
+            image_w = image_w.cuda()
+
+    if 'image_boxes' in batch:
+        image_boxes = Variable(batch['image_boxes'],
+                           requires_grad=False,
+                           volatile=False)
+        if use_cuda:
+            image_boxes = image_boxes.cuda()
+
     # check if more than 1 image_feat_batch
     i = 1
     image_feat_key = "image_feat_batch_%s"
@@ -246,7 +268,10 @@ def one_stage_run_model(batch, my_model, eval_mode, add_graph=False, log_dir=Non
 
     logit_res = my_model(input_question_variable=input_txt_variable,
                          image_dim_variable=image_dim_variable,
-                         image_feat_variables=image_feat_variables)
+                         image_feat_variables=image_feat_variables,
+                         image_boxes=image_boxes,
+                         image_h=image_h,
+                         image_w=image_w)
 
     return logit_res
 
