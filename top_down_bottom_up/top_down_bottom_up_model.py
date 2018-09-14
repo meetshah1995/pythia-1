@@ -93,7 +93,7 @@ class vqa_multi_modal_model(nn.Module):
         image_embeddings = []
         for i, image_feat_variable in enumerate(image_feat_variables):
             image_dim_variable_use = None if i > 0 else image_dim_variable
-            if self.image_feature_encode_list[i].require_bbox:
+            if hasattr(self.image_feature_encode_list[i], 'require_bbox'):
                 image_feat_variable_ft = (
                     self.image_feature_encode_list[i](image_feat_variable,
                                                       kwargs['image_boxes'],
