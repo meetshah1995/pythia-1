@@ -73,6 +73,19 @@ class padded_faster_RCNN_with_bbox_feat_reader:
 
         return (tmp_image_feat_2, image_loc, tmp_image_box)
 
+class faster_RCNN_with_bbox_feat_reader:
+    def read(self, image_feat_path):
+        image_feat_bbox = np.load(image_feat_path).item()
+        image_boxes = image_feat_bbox.get('boxes')
+        image_feat = image_feat_bbox.get('features')
+        image_h = image_feat_bbox.get('image_h')
+        image_w = image_feat_bbox.get('image_w')
+        return (image_feat, 
+                len(image_boxes), 
+                image_boxes,
+                image_h,
+                image_w)
+
 
 def parse_npz_img_feat(feat):
     return feat['x']
@@ -84,6 +97,8 @@ def get_image_feat_reader(ndim, channel_first, image_feat, max_loc=None):
             return faster_RCNN_feat_reader()
         else:
             if isinstance(image_feat.item(0), dict):
+                if 'image_w' in image_feat.item(0):
+                    return faster_RCNN_with_bbox_feat_reader()
                 return padded_faster_RCNN_with_bbox_feat_reader(max_loc)
             else:
                 return padded_faster_RCNN_feat_reader(max_loc)
@@ -222,16 +237,23 @@ class vqa_dataset(Dataset):
 
         image_boxes = None
         image_loc = None
+        image_w = None
+        image_h = None
 
         if isinstance(image_feats[0], tuple):
             image_loc = image_feats[0][1]
             image_feats_return = [image_feats[0][0]] + image_feats[1:]
             if len(image_feats[0]) == 3:
                 image_boxes = image_feats[0][2]
+            if len(image_feats[0]) == 5:
+                image_feat_return = image_feats[0][0]
+                image_boxes = image_feats[0][2]
+                image_h = image_feats[0][3]
+                image_w = image_feats[0][4]
         else:
             image_feats_return = image_feats
 
-        return image_feats_return, image_boxes, image_loc
+        return image_feats_return, image_boxes, image_loc, image_h, image_w
 
     def __getitem__(self, idx):
         input_seq = np.zeros((self.T_encoder), np.int32)
@@ -244,7 +266,7 @@ class vqa_dataset(Dataset):
         input_seq[:read_len] = question_inds[:read_len]
 
         image_file_name = self.imdb[idx]['feature_path']
-        image_feats, image_boxes, image_loc = (
+        image_feats, image_boxes, image_loc, image_h, image_w = (
             self._get_image_features_(image_file_name))
 
         answer = None
@@ -291,6 +313,12 @@ class vqa_dataset(Dataset):
 
         if image_loc is not None:
             sample['image_dim'] = image_loc
+
+        if image_w is not None:
+            sample['image_w'] = image_w
+
+        if image_h is not None:
+            sample['image_h'] = image_h
 
         if self.load_answer:
             sample['answer_label_batch'] = answer_idx
