@@ -77,13 +77,17 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
         # relations for the graph e.g. ['LO', 'RO', 'TO', 'BO', 'IoU']
         self.relations = relations
 
-        # hardcoding for now, more than 1 relation goes OOM
-        self.relations = ['LO']
+        # hardcoding for now
+        self.relations = ['LO', 'RO', 'TO', 'BO', 'IoU']
+        
+        # set output dimension
+        self.out_dim = 512
 
         # learnable weights for each relation L * F_out * F_out
         self.gcn_weights = nn.Parameter(torch.ones(len(self.relations), 
                                                    self.out_dim,
-                                                   self.out_dim).uniform_(0,1),
+                                                   #self.out_dim).uniform_(0,1),
+                                                   2048).uniform_(0,1),
                                         requires_grad=True)
 
 
@@ -126,7 +130,13 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
             else:
                 raise NotImplementedError
 
-        return torch.cat(relation_matrices, 1)
+        # concat along second dim
+        G = torch.cat(relation_matrices, 1)
+
+        # normalize along the rows
+        G = F.normalize(G, p=1, dim=3)
+
+        return G
         
 
     def forward(self, image_feat, boxes, img_h, img_w):
@@ -139,8 +149,10 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
         G = self._get_relation_matrices(boxes, img_h, img_w)
         
         # Compute modified features by multiplying matrices
-        out = torch.stack([torch.bmm(torch.bmm(G[:,i], image_feat), 
-                                     self.gcn_weights.unsqueeze(0).expand(bs, len(self.relations), self.out_dim, self.out_dim)[:,i]) \
+        out = torch.stack([F.linear(torch.bmm(G[:,i], fc7), 
+                                    self.gcn_weights[i]) \
                            for i in range(len(self.relations))], 0)
+
+
         out = torch.mean(out, 0)
         return out
