@@ -43,8 +43,9 @@ finetune_faster_rcnn_fpn_fc7.bias_file = ""
 gcn_finetune_faster_rcnn_fpn_fc7 = AttrDict()
 gcn_finetune_faster_rcnn_fpn_fc7.weights_file = ""
 gcn_finetune_faster_rcnn_fpn_fc7.bias_file = ""
-gcn_finetune_faster_rcnn_fpn_fc7.relations = ""
+gcn_finetune_faster_rcnn_fpn_fc7.relations = []
 gcn_finetune_faster_rcnn_fpn_fc7.n_feats = ""
+gcn_finetune_faster_rcnn_fpn_fc7.branch_from = ""
 
 
 default_feature = AttrDict()
