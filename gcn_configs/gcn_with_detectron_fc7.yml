@@ -16,7 +16,7 @@ data:
   - imdb/imdb_test2015.npy
   imdb_file_train:
   - imdb/imdb_train2014.npy
-  - imdb/imdb_val2014.npy
+  - imdb/imdb_valminusminival2014.npy
   imdb_file_val:
   - imdb/imdb_minival2014.npy
   num_workers: 5
