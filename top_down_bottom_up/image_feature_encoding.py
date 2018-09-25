@@ -39,19 +39,26 @@ class DefaultImageFeature(nn.Module):
 class FinetuneFasterRcnnFpnFc7(nn.Module):
     def __init__(self, in_dim, weights_file, bias_file):
         super(FinetuneFasterRcnnFpnFc7, self).__init__()
-        if not os.path.isabs(weights_file):
-            weights_file = os.path.join(cfg.data.data_root_dir, weights_file)
-        if not os.path.isabs(bias_file):
-            bias_file = os.path.join(cfg.data.data_root_dir, bias_file)
-        with open(weights_file, 'rb') as w:
-            weights = pickle.load(w)
-        with open(bias_file, 'rb') as b:
-            bias = pickle.load(b)
-        out_dim = bias.shape[0]
+
+        if weights_file is not None and bias_file is not None:
+            if not os.path.isabs(weights_file):
+                weights_file = os.path.join(cfg.data.data_root_dir, weights_file)
+            if not os.path.isabs(bias_file):
+                bias_file = os.path.join(cfg.data.data_root_dir, bias_file)
+            with open(weights_file, 'rb') as w:
+                weights = pickle.load(w)
+            with open(bias_file, 'rb') as b:
+                bias = pickle.load(b)
+            out_dim = bias.shape[0]
+        else:
+            out_dim = 2048
 
         self.lc = nn.Linear(in_dim, out_dim)
-        self.lc.weight.data.copy_(torch.from_numpy(weights))
-        self.lc.bias.data.copy_(torch.from_numpy(bias))
+
+        if weights_file is not None and bias_file is not None:
+            self.lc.weight.data.copy_(torch.from_numpy(weights))
+            self.lc.bias.data.copy_(torch.from_numpy(bias))
+
         self.out_dim = out_dim
 
     def forward(self, image):
@@ -67,7 +74,7 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
                  weights_file, 
                  bias_file, 
                  n_feats, 
-                 relations):
+                 relations=None):
         super(GcnFinetuneFasterRcnnFpnFc7, self).__init__(in_dim,
                                                           weights_file,
                                                           bias_file)
@@ -78,7 +85,7 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
         self.relations = relations
 
         # hardcoding for now
-        self.relations = ['LO', 'RO', 'TO', 'BO', 'IoU']
+        self.relations = ['LO', 'RO', 'TO', 'BO']
         
         # set output dimension
         self.out_dim = 512
