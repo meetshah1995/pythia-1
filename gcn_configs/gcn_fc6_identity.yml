@@ -49,9 +49,9 @@ model:
       n_feats: 100
       weights_file: detectron_fix_100/fc6/fc7_w.pkl
       bias_file: detectron_fix_100/fc6/fc7_b.pkl
-      branch_from: 'fc7'
-      relations:
-      - 'LO'
+      branch_from: 'fc6'
+      relations: 
+      - 'I'
   modal_combine:
     method: non_linear_elmt_multiply
     par:
