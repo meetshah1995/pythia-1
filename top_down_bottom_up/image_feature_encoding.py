@@ -74,7 +74,8 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
                  weights_file, 
                  bias_file, 
                  n_feats, 
-                 relations=None):
+                 relations=None,
+                 branch_from=None):
         super(GcnFinetuneFasterRcnnFpnFc7, self).__init__(in_dim,
                                                           weights_file,
                                                           bias_file)
@@ -84,8 +85,8 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
         # relations for the graph e.g. ['LO', 'RO', 'TO', 'BO', 'IoU']
         self.relations = relations
 
-        # hardcoding for now
-        self.relations = ['LO', 'RO', 'TO', 'BO']
+        # See if need to use fc6 or fc7
+        self.branch_from = branch_from
         
         # set output dimension
         self.out_dim = 512
@@ -128,6 +129,10 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
             elif r == 'BO':
                 g = F.sigmoid(-diff_y).unsqueeze(1)
                 relation_matrices.append(g)
+            elif r == 'I':
+                g = torch.eye(n_boxes).expand(bs, n_boxes, n_boxes)
+                g = g.unsqueeze(1).to(mean_x.device)
+                relation_matrices.append(g)
             elif r == 'IoU':
                 iou_mats = []
                 for _boxes in bboxes:
@@ -149,14 +154,17 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
     def forward(self, image_feat, boxes, img_h, img_w):
         bs = len(image_feat)
         
-        # Pass features through fc7 layer for finetuning
-        fc7 = super(GcnFinetuneFasterRcnnFpnFc7, self).forward(image_feat)
+        if self.branch_from == 'fc7':
+            # Pass features through fc7 layer for finetuning
+            gcn_input = super(GcnFinetuneFasterRcnnFpnFc7, self).forward(image_feat)
+        else:
+            gcn_input = image_feat
         
         # Get graph matric for each relation BS * L * N * N
         G = self._get_relation_matrices(boxes, img_h, img_w)
         
         # Compute modified features by multiplying matrices
-        out = torch.stack([F.linear(torch.bmm(G[:,i], fc7), 
+        out = torch.stack([F.linear(torch.bmm(G[:,i], gcn_input), 
                                     self.gcn_weights[i]) \
                            for i in range(len(self.relations))], 0)
 
