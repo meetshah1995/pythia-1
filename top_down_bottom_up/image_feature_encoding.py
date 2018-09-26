@@ -89,14 +89,12 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
         self.branch_from = branch_from
         
         # set output dimension
-        self.out_dim = 512
+        self.out_dim = 2048
 
         # learnable weights for each relation L * F_out * F_out
-        self.gcn_weights = nn.Parameter(torch.ones(len(self.relations), 
-                                                   self.out_dim,
-                                                   #self.out_dim).uniform_(0,1),
-                                                   2048).uniform_(0,1),
-                                        requires_grad=True)
+        weight = torch.ones(len(self.relations), self.out_dim, 2048)
+        nn.init.kaiming_uniform_(weight, a=2.233606)
+        self.gcn_weights = nn.Parameter(weight, requires_grad=True)
 
 
     def _get_relation_matrices(self, bboxes, img_h, img_w):
@@ -164,10 +162,9 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
         G = self._get_relation_matrices(boxes, img_h, img_w)
         
         # Compute modified features by multiplying matrices
-        out = torch.stack([F.linear(torch.bmm(G[:,i], gcn_input), 
-                                    self.gcn_weights[i]) \
+        out = torch.stack([F.relu(F.linear(torch.bmm(G[:,i], gcn_input), 
+                                    self.gcn_weights[i])) \
                            for i in range(len(self.relations))], 0)
-
 
         out = torch.mean(out, 0)
         return out
