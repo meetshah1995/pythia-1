@@ -113,19 +113,24 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
                  mean_x.expand(bs, n_boxes, n_boxes).permute([0,2,1])
         diff_y = mean_y.expand(bs, n_boxes, n_boxes) - \
                  mean_y.expand(bs, n_boxes, n_boxes).permute([0,2,1])
+                 
+        def _transform(graph):
+            graph = 2 * (1 - F.sigmoid(graph))
+            graph[graph > 1] = 0.0
+            return graph
 
         for r in self.relations:
             if r == 'LO':
-                g = F.sigmoid(diff_x).unsqueeze(1)
+                g = _transform(diff_x).unsqueeze(1)
                 relation_matrices.append(g)
             elif r == 'RO':
-                g = F.sigmoid(-diff_x).unsqueeze(1)
+                g = _transform(-diff_x).unsqueeze(1)
                 relation_matrices.append(g)
             elif r == 'TO':
-                g = F.sigmoid(diff_y).unsqueeze(1)
+                g = _transform(diff_y).unsqueeze(1)
                 relation_matrices.append(g)
             elif r == 'BO':
-                g = F.sigmoid(-diff_y).unsqueeze(1)
+                g = _transform(-diff_y).unsqueeze(1)
                 relation_matrices.append(g)
             elif r == 'I':
                 g = torch.eye(n_boxes).expand(bs, n_boxes, n_boxes)
