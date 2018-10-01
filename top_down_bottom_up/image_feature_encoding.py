@@ -75,7 +75,8 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
                  bias_file, 
                  n_feats, 
                  relations=None,
-                 branch_from=None):
+                 branch_from=None,
+                 temperature=1.0):
         super(GcnFinetuneFasterRcnnFpnFc7, self).__init__(in_dim,
                                                           weights_file,
                                                           bias_file)
@@ -90,6 +91,9 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
         
         # set output dimension
         self.out_dim = 2048
+
+        # temperature for scaling
+        self.temperature = temperature
 
         # learnable weights for each relation L * F_out * F_out
         weight = torch.ones(len(self.relations), self.out_dim, 2048)
@@ -115,7 +119,7 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
                  mean_y.expand(bs, n_boxes, n_boxes).permute([0,2,1])
                  
         def _transform(graph):
-            graph = 2 * (1 - F.sigmoid(graph))
+            graph = 2 * (1 - F.sigmoid(graph / self.temperature))
             graph[graph > 1] = 0.0
             return graph
 
