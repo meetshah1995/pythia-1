@@ -46,7 +46,8 @@ gcn_finetune_faster_rcnn_fpn_fc7.bias_file = ""
 gcn_finetune_faster_rcnn_fpn_fc7.relations = []
 gcn_finetune_faster_rcnn_fpn_fc7.n_feats = ""
 gcn_finetune_faster_rcnn_fpn_fc7.branch_from = ""
-gcn_finetune_faster_rcnn_fpn_fc7.temperature = 1.0
+gcn_finetune_faster_rcnn_fpn_fc7.bias = ""
+gcn_finetune_faster_rcnn_fpn_fc7.temperature = ""
 
 
 default_feature = AttrDict()
