@@ -76,7 +76,8 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
                  n_feats, 
                  relations=None,
                  branch_from=None,
-                 temperature=1.0):
+                 temperature=1.0,
+                 bias=False):
         super(GcnFinetuneFasterRcnnFpnFc7, self).__init__(in_dim,
                                                           weights_file,
                                                           bias_file)
@@ -88,6 +89,9 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
 
         # See if need to use fc6 or fc7
         self.branch_from = branch_from
+
+        # To use bias in feature transformation
+        self.bias = bias
         
         # set output dimension
         self.out_dim = 2048
@@ -96,6 +100,9 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
         self.temperature = temperature
 
         # learnable weights for each relation L * F_out * F_out
+        self.transforms = nn.ModuleList([nn.Linear(2048, self.out_dim, self.bias) 
+                                         for _ in self.relations])
+
         weight = torch.ones(len(self.relations), self.out_dim, 2048)
         nn.init.kaiming_uniform_(weight, a=2.233606)
         self.gcn_weights = nn.Parameter(weight, requires_grad=True)
@@ -171,9 +178,13 @@ class GcnFinetuneFasterRcnnFpnFc7(FinetuneFasterRcnnFpnFc7):
         G = self._get_relation_matrices(boxes, img_h, img_w)
         
         # Compute modified features by multiplying matrices
-        out = torch.stack([F.relu(F.linear(torch.bmm(G[:,i], gcn_input), 
-                                    self.gcn_weights[i])) \
+        out = torch.stack([F.relu(self.transforms[i](torch.bmm(G[:,i], 
+                                                     gcn_input)), inplace=True)
                            for i in range(len(self.relations))], 0)
+            
+        #    F.linear(torch.bmm(G[:,i], gcn_input), 
+        #                             self.gcn_weights[i])) \
+        #                   for i in range(len(self.relations))], 0)
 
         out = torch.mean(out, 0)
         return out
