@@ -73,7 +73,7 @@ def save_a_report(i_iter, train_loss, train_acc, train_avg_acc, report_timer, wr
 
 
 def save_a_snapshot(snapshot_dir,i_iter, iepoch, myModel, my_optimizer, loss_criterion, best_val_accuracy,
-                    best_epoch, best_iter, snapshot_timer, data_reader_eval):
+                    best_epoch, best_iter, snapshot_timer, data_reader_eval, writer):
     model_snapshot_file = os.path.join(snapshot_dir, "model_%08d.pth" % i_iter)
     model_result_file = os.path.join(snapshot_dir, "result_on_val.txt")
     save_dic = {
@@ -98,6 +98,9 @@ def save_a_snapshot(snapshot_dir,i_iter, iepoch, myModel, my_optimizer, loss_cri
             best_epoch = iepoch
             best_iter = i_iter
             best_model_snapshot_file = os.path.join(snapshot_dir, "best_model.pth")
+
+        writer.add_scalar('val_acc', val_accuracy, i_iter)
+        writer.add_scalar('best_val_acc', best_val_accuracy, i_iter)
 
         save_dic['best_val_accuracy'] = best_val_accuracy
         torch.save(save_dic, model_snapshot_file)
@@ -156,7 +159,7 @@ def one_stage_train(myModel, data_reader_trn, my_optimizer,
                 best_val_accuracy, best_epoch, best_iter = save_a_snapshot(snapshot_dir, i_iter, iepoch, myModel,
                                                                          my_optimizer, loss_criterion, best_val_accuracy,
                                                                           best_epoch, best_iter, snapshot_timer,
-                                                                          data_reader_eval)
+                                                                          data_reader_eval, writer)
 
     writer.export_scalars_to_json(os.path.join(log_dir, "all_scalars.json"))
     writer.close()
