@@ -27,7 +27,9 @@ def build_trainer(args, *rest, **kwargs):
 
     trainer_type = config.training_parameters.trainer
     trainer_cls = registry.get_trainer_class(trainer_type)
-    return trainer_cls(config)
+    trainer_obj = trainer_cls(config)
+    setattr(trainer_obj, 'args', args)
+    return trainer_obj
 
 
 def build_model(config):
